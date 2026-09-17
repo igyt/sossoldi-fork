@@ -33,75 +33,66 @@ class CategoryList extends ConsumerWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(top: Sizes.xl),
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            categoriesList.when(
-              data: (categories) => ReorderableListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: categories.length,
-                onReorder: (oldIndex, newIndex) {
+      body: categoriesList.when(
+        data: (categories) => ReorderableListView.builder(
+          padding: const EdgeInsets.only(top: Sizes.xl),
+          itemCount: categories.length,
+          buildDefaultDragHandles: false,
+          onReorder: (oldIndex, newIndex) {
+            ref
+                .read(categoriesProvider.notifier)
+                .reorderCategories(oldIndex, newIndex);
+          },
+          proxyDecorator: (child, index, animation) {
+            return Material(
+              elevation: 5,
+              color: Colors.transparent,
+              child: child,
+            );
+          },
+          itemBuilder: (context, i) {
+            CategoryTransaction category = categories[i];
+            return Container(
+              key: ValueKey(category.id),
+              margin: const EdgeInsets.only(bottom: Sizes.lg),
+              child: DefaultCard(
+                onTap: () {
                   ref
-                      .read(categoriesProvider.notifier)
-                      .reorderCategories(oldIndex, newIndex);
+                      .read(selectedCategoryProvider.notifier)
+                      .setCategory(category);
+                  Navigator.of(context).pushNamed('/add-category');
                 },
-                proxyDecorator: (child, index, animation) {
-                  return Material(
-                    elevation: 5,
-                    color: Colors.transparent,
-                    child: child,
-                  );
-                },
-                itemBuilder: (context, i) {
-                  CategoryTransaction category = categories[i];
-                  return Container(
-                    key: ValueKey(category.id),
-                    margin: const EdgeInsets.only(bottom: Sizes.lg),
-                    child: DefaultCard(
-                      onTap: () {
-                        ref
-                            .read(selectedCategoryProvider.notifier)
-                            .setCategory(category);
-                        Navigator.of(context).pushNamed('/add-category');
-                      },
-                      child: Row(
-                        spacing: Sizes.md,
-                        children: [
-                          RoundedIcon(
-                            icon: iconList[category.symbol],
-                            backgroundColor:
-                                categoryColorListTheme[category.color],
-                            size: 30,
-                          ),
-                          Expanded(
-                            child: Text(
-                              category.name,
-                              style: Theme.of(context).textTheme.titleLarge!
-                                  .copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                            ),
-                          ),
-                          Icon(
-                            Icons.drag_handle,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ],
+                child: Row(
+                  spacing: Sizes.md,
+                  children: [
+                    RoundedIcon(
+                      icon: iconList[category.symbol],
+                      backgroundColor: categoryColorListTheme[category.color],
+                      size: 30,
+                    ),
+                    Expanded(
+                      child: Text(
+                        category.name,
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
-                  );
-                },
+                    ReorderableDragStartListener(
+                      index: i,
+                      child: Icon(
+                        Icons.drag_handle,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Text('Error: $err'),
-            ),
-          ],
+            );
+          },
         ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
       ),
     );
   }

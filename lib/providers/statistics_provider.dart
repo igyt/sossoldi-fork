@@ -55,7 +55,10 @@ class Statistics extends _$Statistics {
 
       if (i < reversedTransactions.length - 1) {
         runningBalance =
-            runningBalance - monthData['income'] + monthData['expense'];
+            runningBalance -
+            monthData['income'] +
+            monthData['expense'] -
+            (monthData['adjustment'] ?? 0);
       }
     }
 

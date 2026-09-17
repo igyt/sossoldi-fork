@@ -45,18 +45,27 @@ class TransactionFields extends BaseEntityFields {
 enum TransactionType {
   income,
   expense,
-  transfer;
+  transfer,
+  adjustment;
+
+  static const List<TransactionType> userSelectable = [
+    TransactionType.income,
+    TransactionType.expense,
+    TransactionType.transfer,
+  ];
 
   String get code => switch (this) {
     TransactionType.income => "IN",
     TransactionType.expense => "OUT",
     TransactionType.transfer => "TRSF",
+    TransactionType.adjustment => "ADJ",
   };
 
   CategoryTransactionType? get categoryType => switch (this) {
     TransactionType.income => CategoryTransactionType.income,
     TransactionType.expense => CategoryTransactionType.expense,
     TransactionType.transfer => null,
+    TransactionType.adjustment => null,
   };
 
   String get prefix => switch (this) {
@@ -75,6 +84,8 @@ enum TransactionType {
           return blue3;
         }
         return darkBlue6;
+      case TransactionType.adjustment:
+        return brightness == Brightness.light ? grey1 : darkGrey1;
     }
   }
 
@@ -131,9 +142,9 @@ class Transaction extends BaseEntity {
     num? amount,
     TransactionType? type,
     String? note,
-    int? idCategory,
+    Object? idCategory = _unset,
     int? idBankAccount,
-    int? idBankAccountTransfer,
+    Object? idBankAccountTransfer = _unset,
     bool? recurring,
     int? idRecurringTransaction,
     DateTime? createdAt,
@@ -144,9 +155,11 @@ class Transaction extends BaseEntity {
     amount: amount ?? this.amount,
     type: type ?? this.type,
     note: note ?? this.note,
-    idCategory: idCategory ?? this.idCategory,
+    idCategory: idCategory == _unset ? this.idCategory : idCategory as int?,
     idBankAccount: idBankAccount ?? this.idBankAccount,
-    idBankAccountTransfer: idBankAccountTransfer ?? this.idBankAccountTransfer,
+    idBankAccountTransfer: idBankAccountTransfer == _unset
+        ? this.idBankAccountTransfer
+        : idBankAccountTransfer as int?,
     recurring: recurring ?? this.recurring,
     idRecurringTransaction:
         idRecurringTransaction ?? this.idRecurringTransaction,

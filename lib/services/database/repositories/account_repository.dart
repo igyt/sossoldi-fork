@@ -86,9 +86,9 @@ class AccountRepository {
 
     final result = await db.rawQuery('''
       SELECT b.*, (b.${BankAccountFields.startingValue} +
-      SUM(CASE WHEN t.${TransactionFields.type} = 'IN' OR t.${TransactionFields.type} = 'TRSF' AND t.${TransactionFields.idBankAccountTransfer} = b.${BankAccountFields.id} THEN t.${TransactionFields.amount}
+      SUM(CASE WHEN t.${TransactionFields.type} = 'IN' OR t.${TransactionFields.type} = 'ADJ' OR (t.${TransactionFields.type} = 'TRSF' AND t.${TransactionFields.idBankAccountTransfer} = b.${BankAccountFields.id}) THEN t.${TransactionFields.amount}
                ELSE 0 END) -
-      SUM(CASE WHEN t.${TransactionFields.type} = 'OUT' OR t.${TransactionFields.type} = 'TRSF' AND t.${TransactionFields.idBankAccount} = b.${BankAccountFields.id} THEN t.${TransactionFields.amount}
+      SUM(CASE WHEN t.${TransactionFields.type} = 'OUT' OR (t.${TransactionFields.type} = 'TRSF' AND t.${TransactionFields.idBankAccount} = b.${BankAccountFields.id}) THEN t.${TransactionFields.amount}
                ELSE 0 END)
     ) as ${BankAccountFields.total}
       FROM $bankAccountTable as b
@@ -249,6 +249,9 @@ class AccountRepository {
           case ('OUT'):
             balance -= amount;
             break;
+          case ('ADJ'):
+            balance += amount;
+            break;
           case ('TRSF'):
             if (transaction[TransactionFields.idBankAccount] == id) {
               balance -= amount;
@@ -308,7 +311,7 @@ class AccountRepository {
     final resultQuery = await db.rawQuery('''
       SELECT
         strftime('%Y-%m-%d', ${TransactionFields.date}) as day,
-        SUM(CASE WHEN (${TransactionFields.type} = 'IN' OR (${TransactionFields.type} = 'TRSF' AND ${TransactionFields.idBankAccountTransfer} = $accountId)) THEN ${TransactionFields.amount} ELSE 0 END) as income,
+        SUM(CASE WHEN (${TransactionFields.type} = 'IN' OR ${TransactionFields.type} = 'ADJ' OR (${TransactionFields.type} = 'TRSF' AND ${TransactionFields.idBankAccountTransfer} = $accountId)) THEN ${TransactionFields.amount} ELSE 0 END) as income,
         SUM(CASE WHEN ${TransactionFields.type} = 'OUT' OR (${TransactionFields.type} = 'TRSF' AND ${TransactionFields.idBankAccount} = $accountId) THEN ${TransactionFields.amount} ELSE 0 END) as expense
       FROM "$transactionTable"
       WHERE $sqlFilters
@@ -363,7 +366,7 @@ class AccountRepository {
     final resultQuery = await db.rawQuery('''
       SELECT
         strftime('%Y-%m', ${TransactionFields.date}) as month,
-        SUM(CASE WHEN (${TransactionFields.type} = 'IN' OR (${TransactionFields.type} = 'TRSF' AND ${TransactionFields.idBankAccountTransfer} = $accountId)) THEN ${TransactionFields.amount} ELSE 0 END) as income,
+        SUM(CASE WHEN (${TransactionFields.type} = 'IN' OR ${TransactionFields.type} = 'ADJ' OR (${TransactionFields.type} = 'TRSF' AND ${TransactionFields.idBankAccountTransfer} = $accountId)) THEN ${TransactionFields.amount} ELSE 0 END) as income,
         SUM(CASE WHEN ${TransactionFields.type} = 'OUT' OR (${TransactionFields.type} = 'TRSF' AND ${TransactionFields.idBankAccount} = $accountId) THEN ${TransactionFields.amount} ELSE 0 END) as expense
       FROM "$transactionTable"
       WHERE $sqlFilters

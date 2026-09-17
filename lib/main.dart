@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_phoenix/flutter_phoenix.dart';
@@ -16,8 +20,48 @@ import 'services/database/sossoldi_database.dart';
 import 'services/notifications/notifications_service.dart';
 import 'ui/theme/app_theme.dart';
 
+void _initDesktopDatabase() {
+  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+}
+
+Future<void> _authenticateIfRequired(
+  SharedPreferences sharedPreferences,
+) async {
+  // local_auth has no Linux implementation; calling it here throws and
+  // leaves the GTK window on a black frame because runApp never runs.
+  if (!(Platform.isAndroid ||
+      Platform.isIOS ||
+      Platform.isMacOS ||
+      Platform.isWindows)) {
+    return;
+  }
+
+  try {
+    final LocalAuthentication auth = LocalAuthentication();
+    if (!await auth.isDeviceSupported()) return;
+
+    final bool requiresAuthentication =
+        sharedPreferences.getBool("user_requires_authentication") ?? false;
+    if (!requiresAuthentication) return;
+
+    final bool didAuthenticate = await auth.authenticate(
+      localizedReason: 'Please authenticate to use Sossoldi',
+      persistAcrossBackgrounding: true,
+    );
+    if (!didAuthenticate) {
+      exit(0);
+    }
+  } catch (_) {
+    // Continue without a lock screen if biometrics are unavailable.
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  _initDesktopDatabase();
   NotificationService().requestNotificationPermissions();
   NotificationService().initializeNotifications();
   tz.initializeTimeZones();
@@ -64,33 +108,22 @@ void main() async {
     );
   }
 
-  final LocalAuthentication auth = LocalAuthentication();
-  if (await auth.isDeviceSupported()) {
-    // check for authentication if requested by user
-    bool? requiresAuthentication = sharedPreferences.getBool(
-      "user_requires_authentication",
-    );
+  await _authenticateIfRequired(sharedPreferences);
 
-    if (requiresAuthentication != null && requiresAuthentication == true) {
-      // use sticky auth to resume auth request when app is going background
-      bool didAuthenticate = await auth.authenticate(
-        localizedReason: 'Please authenticate to use Sossoldi',
-        persistAcrossBackgrounding: true,
-      );
-      if (!didAuthenticate) return; // stops app from loading
-    }
+  try {
+    await initializeDateFormatting('it_IT');
+  } catch (_) {
+    // Italian locale data is optional; the app can start without it.
   }
 
-  initializeDateFormatting('it_IT', null).then(
-    (_) => runApp(
-      Phoenix(
-        child: ProviderScope(
-          overrides: [
-            versionProvider.overrideWithValue(packageInfo.version),
-            sharedPrefProvider.overrideWithValue(sharedPreferences),
-          ],
-          child: const Launcher(),
-        ),
+  runApp(
+    Phoenix(
+      child: ProviderScope(
+        overrides: [
+          versionProvider.overrideWithValue(packageInfo.version),
+          sharedPrefProvider.overrideWithValue(sharedPreferences),
+        ],
+        child: const Launcher(),
       ),
     ),
   );

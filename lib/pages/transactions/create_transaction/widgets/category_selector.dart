@@ -19,9 +19,9 @@ class CategorySelector extends ConsumerStatefulWidget {
 }
 
 class _CategorySelectorState extends ConsumerState<CategorySelector> {
-  void _selectCategory(BuildContext context, CategoryTransaction category) {
+  void _selectCategory(BuildContext context, CategoryTransaction? category) {
     ref.read(selectedCategoryProvider.notifier).setCategory(category);
-    // Navigator.pop(context);
+    Navigator.of(context).pop();
   }
 
   @override
@@ -135,14 +135,29 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
                     data: (categories) => Container(
                       color: Theme.of(context).colorScheme.surface,
                       child: ListView.separated(
-                        itemCount: categories.length,
+                        itemCount: categories.length + 1,
                         scrollDirection: Axis.vertical,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         separatorBuilder: (context, index) =>
                             const Divider(height: 1, color: grey1),
                         itemBuilder: (context, i) {
-                          CategoryTransaction category = categories[i];
+                          if (i == 0) {
+                            return ListTile(
+                              onTap: () => _selectCategory(context, null),
+                              leading: RoundedIcon(
+                                icon: Icons.label_off,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.secondary,
+                              ),
+                              title: const Text("Uncategorized"),
+                              trailing: selectedCategory == null
+                                  ? const Icon(Icons.check)
+                                  : null,
+                            );
+                          }
+                          CategoryTransaction category = categories[i - 1];
                           final subcategories = ref.watch(
                             subcategoriesProvider(category.id!),
                           );

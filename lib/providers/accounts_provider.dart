@@ -158,12 +158,10 @@ class Accounts extends _$Accounts {
       await ref
           .read(transactionsProvider.notifier)
           .create(
-            difference.abs(),
+            difference,
             'Reconciliation',
             account: account,
-            type: difference > 0
-                ? TransactionType.income
-                : TransactionType.expense,
+            type: TransactionType.adjustment,
             date: DateTime.now(),
           );
     }

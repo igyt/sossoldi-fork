@@ -56,7 +56,8 @@ class _TransactionsListState extends State<TransactionsList> {
       final amount = switch (transaction.type) {
         TransactionType.expense => -transaction.amount.toDouble(),
         TransactionType.income => transaction.amount.toDouble(),
-        TransactionType.transfer => 0.0, // Explicitly handle transfers
+        TransactionType.transfer => 0.0,
+        TransactionType.adjustment => 0.0,
       };
 
       totals[date] = currentTotal + amount;
@@ -107,10 +108,14 @@ class _TransactionsListState extends State<TransactionsList> {
                           context,
                         ).colorScheme.primary.withValues(alpha: 0.4),
                       ),
-                      itemBuilder: (context, index) => TransactionTile(
-                        ignoreBlur: widget.ignoreBlur,
-                        transaction: dateTransactions[index],
-                      ),
+                      itemBuilder: (context, index) {
+                        final transaction = dateTransactions[index];
+                        return TransactionTile(
+                          key: ValueKey(transaction.id),
+                          ignoreBlur: widget.ignoreBlur,
+                          transaction: transaction,
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -171,7 +176,9 @@ class TransactionTile extends ConsumerWidget {
               });
         },
         leading: RoundedIcon(
-          icon: transaction.categorySymbol != null
+          icon: transaction.type == TransactionType.adjustment
+              ? Icons.sync
+              : transaction.categorySymbol != null
               ? iconList[transaction.categorySymbol]
               : Icons.swap_horiz_rounded,
           backgroundColor: transaction.categoryColor != null
@@ -190,9 +197,13 @@ class TransactionTile extends ConsumerWidget {
           ),
         ),
         subtitle: Text(
-          transaction.type == TransactionType.transfer
-              ? ""
-              : transaction.categoryName ?? "Uncategorized",
+          switch (transaction.type) {
+            TransactionType.transfer => "",
+            TransactionType.adjustment => "Adjustment",
+            TransactionType.income ||
+            TransactionType.expense =>
+              transaction.categoryName ?? "Uncategorized",
+          },
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.labelMedium!.copyWith(
             color: Theme.of(context).colorScheme.primary,
@@ -208,7 +219,15 @@ class TransactionTile extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${transaction.type == TransactionType.expense ? "-" : ""}${transaction.amount.toCurrency()}',
+                    switch (transaction.type) {
+                      TransactionType.expense =>
+                        "-${transaction.amount.toCurrency()}",
+                      TransactionType.adjustment =>
+                        transaction.amount.toCurrency(),
+                      TransactionType.income ||
+                      TransactionType.transfer =>
+                        transaction.amount.toCurrency(),
+                    },
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: transaction.type.toColor(

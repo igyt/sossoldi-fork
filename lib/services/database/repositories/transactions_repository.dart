@@ -237,7 +237,8 @@ class TransactionsRepository {
       SELECT
         strftime('$frequencyDateParser', t.${TransactionFields.date}) as $freqencyString,
         SUM(CASE WHEN t.${TransactionFields.type} = 'IN' THEN t.${TransactionFields.amount} ELSE 0 END) as income,
-        SUM(CASE WHEN t.${TransactionFields.type} = 'OUT' THEN t.${TransactionFields.amount} ELSE 0 END) as expense
+        SUM(CASE WHEN t.${TransactionFields.type} = 'OUT' THEN t.${TransactionFields.amount} ELSE 0 END) as expense,
+        SUM(CASE WHEN t.${TransactionFields.type} = 'ADJ' THEN t.${TransactionFields.amount} ELSE 0 END) as adjustment
       FROM "$transactionTable" t
       JOIN $bankAccountTable b ON t.${TransactionFields.idBankAccount} = b.${BankAccountFields.id}
       WHERE $sqlFilters AND b.${BankAccountFields.countNetWorth} = 1 AND b.${BankAccountFields.active} = 1

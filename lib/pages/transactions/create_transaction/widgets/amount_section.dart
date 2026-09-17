@@ -22,6 +22,7 @@ class AmountSection extends ConsumerStatefulWidget {
 
 class _AmountSectionState extends ConsumerState<AmountSection> {
   static const List<String> _titleList = ['Income', 'Expense', 'Transfer'];
+  static const List<TransactionType> _selectableTypes = TransactionType.userSelectable;
 
   List<bool> _typeToggleState = [false, true, false];
 
@@ -33,6 +34,8 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
         _typeToggleState = [true, false, false];
       } else if (selectedType == TransactionType.transfer) {
         _typeToggleState = [false, false, true];
+      } else if (selectedType == TransactionType.adjustment) {
+        _typeToggleState = [false, false, false];
       }
     });
     super.initState();
@@ -40,7 +43,6 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
 
   @override
   Widget build(BuildContext context) {
-    final trsncTypeList = TransactionType.values;
     final selectedType = ref.watch(selectedTransactionTypeProvider);
 
     return Container(
@@ -48,7 +50,24 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
       child: Column(
         children: [
           const SizedBox(height: Sizes.xxl),
-          Container(
+          if (selectedType == TransactionType.adjustment)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
+              child: Container(
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
+                ),
+                child: Text(
+                  "Balance adjustment",
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+            )
+          else
+            Container(
             height: 30,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primaryContainer,
@@ -59,8 +78,8 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
               direction: Axis.horizontal,
               onPressed: (int index) {
                 List<bool> newSelection = [];
-                for (TransactionType type in trsncTypeList) {
-                  if (type == trsncTypeList[index]) {
+                for (TransactionType type in _selectableTypes) {
+                  if (type == _selectableTypes[index]) {
                     newSelection.add(true);
                     ref
                         .read(selectedTransactionTypeProvider.notifier)
@@ -88,7 +107,7 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
                 (index) => TypeTab(
                   _typeToggleState[index],
                   _titleList[index],
-                  trsncTypeList[index].toColor(
+                  _selectableTypes[index].toColor(
                     brightness: Theme.of(context).brightness,
                   ),
                 ),

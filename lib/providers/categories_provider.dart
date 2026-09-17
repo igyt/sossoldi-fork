@@ -191,7 +191,9 @@ class Categories extends _$Categories {
       newIndex -= 1;
     }
 
-    final parents = currentList.where((c) => c.parent == null).toList();
+    final parents = currentList
+        .where((c) => c.parent == null && c.deletedAt == null)
+        .toList();
     final item = parents.removeAt(oldIndex);
     parents.insert(newIndex, item);
 

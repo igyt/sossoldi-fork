@@ -168,11 +168,11 @@ class TransactionsNotifier extends _$TransactionsNotifier {
 
     ref.read(totalAmountProvider.notifier).state = transactions.fold<num>(
       0,
-      (prev, transaction) => transaction.type == TransactionType.transfer
-          ? prev
-          : transaction.type == TransactionType.expense
-          ? prev - transaction.amount
-          : prev + transaction.amount,
+      (prev, transaction) => switch (transaction.type) {
+        TransactionType.transfer || TransactionType.adjustment => prev,
+        TransactionType.expense => prev - transaction.amount,
+        TransactionType.income => prev + transaction.amount,
+      },
     );
     return transactions;
   }
@@ -204,7 +204,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
       idBankAccountTransfer: account != null
           ? null
           : ref.read(bankAccountTransferProvider)?.id,
-      idCategory: account != null || t == TransactionType.transfer
+      idCategory: account != null ||
+              t == TransactionType.transfer ||
+              t == TransactionType.adjustment
           ? null
           : ref.read(selectedCategoryProvider)?.id,
       recurring: account != null
@@ -254,8 +256,14 @@ class TransactionsNotifier extends _$TransactionsNotifier {
       type: type,
       note: label,
       idBankAccount: bankAccount.id!,
-      idBankAccountTransfer: bankAccountTransfer?.id,
-      idCategory: category?.id,
+      idBankAccountTransfer: type == TransactionType.transfer
+          ? bankAccountTransfer?.id
+          : null,
+      idCategory:
+          type == TransactionType.transfer ||
+              type == TransactionType.adjustment
+          ? null
+          : category?.id,
       idRecurringTransaction: recurringTransactionId,
       recurring: recurringTransactionId != null ? true : false,
     );
@@ -273,11 +281,14 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.read(selectedRecurringPayProvider.notifier).state =
         transaction.recurring;
     if (transaction.type != TransactionType.transfer &&
+        transaction.type != TransactionType.adjustment &&
         transaction.idCategory != null) {
       ref.read(selectedCategoryProvider.notifier).state = ref
           .read(categoriesProvider)
           .value!
           .firstWhere((element) => element.id == transaction.idCategory!);
+    } else {
+      ref.read(selectedCategoryProvider.notifier).state = null;
     }
     ref.read(selectedBankAccountProvider.notifier).state = ref
         .read(accountsProvider)
