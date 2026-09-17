@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'providers/settings_provider.dart';
 import 'providers/theme_provider.dart';
 import 'routes/routes.dart';
+import 'services/backup/drive_backup_service.dart';
 import 'services/database/repositories/recurring_transactions_repository.dart';
 import 'services/database/sossoldi_database.dart';
 import 'services/notifications/notifications_service.dart';
@@ -127,6 +129,28 @@ void main() async {
       ),
     ),
   );
+
+  unawaited(_maybeBackupToDrive(sharedPreferences));
+}
+
+Future<void> _maybeBackupToDrive(SharedPreferences sharedPreferences) async {
+  final drive = DriveBackupService.instance;
+  if (!drive.isSupported || !drive.isConfigured) return;
+  if (sharedPreferences.getBool(driveBackupOnOpenPref) != true) return;
+  final last = sharedPreferences.getInt(driveLastBackupMsPref) ?? 0;
+  if (DateTime.now().millisecondsSinceEpoch - last < 24 * 60 * 60 * 1000) {
+    return;
+  }
+  try {
+    await drive.restoreSession();
+    if (drive.currentUser == null) return;
+    final csv = await SossoldiDatabase.instance.exportToCSV();
+    await drive.uploadCsv(csv);
+    await sharedPreferences.setInt(
+      driveLastBackupMsPref,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  } catch (_) {}
 }
 
 class Launcher extends ConsumerWidget {

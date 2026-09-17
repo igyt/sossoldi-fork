@@ -26,7 +26,7 @@ android {
         }
     }
 
-    namespace = "com.ripster.sossoldi"
+    namespace = "com.bltr.sossoldi"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -43,7 +43,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.ripster.sossoldi"
+        applicationId = "com.bltr.sossoldi"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

@@ -19,6 +19,7 @@ import '0005_add_account_order.dart';
 import '0006_migrate_icons_name.dart';
 import '0007_add_deleted_at.dart';
 import '0008_reconciliation_adjustments.dart';
+import '0009_reconciliation_adjustments_reapply.dart';
 
 import '../migration_base.dart';
 
@@ -38,6 +39,7 @@ List<Migration> getMigrations() {
     MigrateIconsName(),
     AddDeletedAt(),
     ConvertReconciliationsToAdjustments(),
+    ReapplyReconciliationAdjustments(),
   ];
 }
 

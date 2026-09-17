@@ -140,6 +140,7 @@ class PanelListTile extends ConsumerWidget {
     grouped.forEach((categoryId, list) {
       double sum = 0;
       for (final t in list) {
+        if (t.isBalanceReset) continue;
         sum += t.type == TransactionType.income
             ? t.amount.toDouble()
             : -t.amount.toDouble();
@@ -244,7 +245,9 @@ class TransactionsList extends StatelessWidget {
           const Divider(indent: 15, endIndent: 15),
       itemBuilder: (context, index) {
         final transaction = transactions[index];
-        final amount = transaction.type == TransactionType.income
+        final amount = transaction.isBalanceReset
+            ? transaction.amount
+            : transaction.type == TransactionType.income
             ? transaction.amount
             : -transaction.amount;
         return Container(

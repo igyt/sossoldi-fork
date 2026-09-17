@@ -3,8 +3,8 @@ appiumURL: http://0.0.0.0:4723
 platforms:
   - platformName: android
     automationName: UiAutomator2
-    appPackage: com.ripster.sossoldi
-    appActivity: com.ripster.sossoldi.MainActivity
+    appPackage: com.bltr.sossoldi
+    appActivity: com.bltr.sossoldi.MainActivity
     udid: YOUR-UDID
     constants:
       text: text

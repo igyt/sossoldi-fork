@@ -44,7 +44,7 @@ var settingsOptions = [
   [
     Icons.download_for_offline,
     "Import/Export",
-    "Import or export data from a CSV file",
+    "Import, export, or back up to Google Drive",
     "/backup-page",
   ],
   [

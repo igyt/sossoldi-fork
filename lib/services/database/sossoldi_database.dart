@@ -16,6 +16,7 @@ import '../../model/currency.dart';
 import '../../model/recurring_transaction.dart';
 import '../../model/transaction.dart';
 import 'migration_manager.dart';
+import 'migrations/0008_reconciliation_adjustments.dart';
 
 part 'sossoldi_database.g.dart';
 
@@ -198,6 +199,7 @@ class SossoldiDatabase {
             results[tableName] = false;
           }
         }
+        await ConvertReconciliationsToAdjustments.apply(txn);
       });
     } catch (e) {
       dev.log('Error during import: $e');

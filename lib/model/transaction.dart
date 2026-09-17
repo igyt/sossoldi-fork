@@ -136,6 +136,10 @@ class Transaction extends BaseEntity {
     super.updatedAt,
   });
 
+  /// Account reset: not cashflow. Includes legacy CSV rows still stored as IN/OUT.
+  bool get isBalanceReset =>
+      type == TransactionType.adjustment || note == 'Reconciliation';
+
   Transaction copy({
     Object? id = _unset,
     DateTime? date,

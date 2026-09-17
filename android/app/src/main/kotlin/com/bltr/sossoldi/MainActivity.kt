@@ -1,4 +1,4 @@
-package com.ripster.sossoldi
+package com.bltr.sossoldi
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

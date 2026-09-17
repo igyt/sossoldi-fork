@@ -53,12 +53,14 @@ class _TransactionsListState extends State<TransactionsList> {
       final date = transaction.date.formatYMD();
       final currentTotal = totals[date] ?? 0.0;
 
-      final amount = switch (transaction.type) {
-        TransactionType.expense => -transaction.amount.toDouble(),
-        TransactionType.income => transaction.amount.toDouble(),
-        TransactionType.transfer => 0.0,
-        TransactionType.adjustment => 0.0,
-      };
+      final amount = transaction.isBalanceReset
+          ? 0.0
+          : switch (transaction.type) {
+              TransactionType.expense => -transaction.amount.toDouble(),
+              TransactionType.income => transaction.amount.toDouble(),
+              TransactionType.transfer => 0.0,
+              TransactionType.adjustment => 0.0,
+            };
 
       totals[date] = currentTotal + amount;
     }

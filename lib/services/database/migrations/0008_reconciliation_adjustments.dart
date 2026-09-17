@@ -13,8 +13,9 @@ class ConvertReconciliationsToAdjustments extends Migration {
             'Convert Reconciliation income/expense rows to balance adjustments',
       );
 
-  @override
-  Future<void> up(Database db) async {
+  /// Turns note=Reconciliation income/expense rows into ADJ balance resets.
+  /// Safe to run more than once (no-op when none remain).
+  static Future<void> apply(DatabaseExecutor db) async {
     await db.execute('''
       UPDATE `$transactionTable`
       SET ${TransactionFields.type} = '${TransactionType.adjustment.code}',
@@ -29,4 +30,7 @@ class ConvertReconciliationsToAdjustments extends Migration {
         AND ${TransactionFields.type} = '${TransactionType.income.code}'
     ''');
   }
+
+  @override
+  Future<void> up(Database db) => apply(db);
 }

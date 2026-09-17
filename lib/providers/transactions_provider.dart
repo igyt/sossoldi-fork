@@ -168,10 +168,14 @@ class TransactionsNotifier extends _$TransactionsNotifier {
 
     ref.read(totalAmountProvider.notifier).state = transactions.fold<num>(
       0,
-      (prev, transaction) => switch (transaction.type) {
-        TransactionType.transfer || TransactionType.adjustment => prev,
-        TransactionType.expense => prev - transaction.amount,
-        TransactionType.income => prev + transaction.amount,
+      (prev, transaction) {
+        if (transaction.isBalanceReset) return prev;
+        return switch (transaction.type) {
+          TransactionType.transfer => prev,
+          TransactionType.adjustment => prev,
+          TransactionType.expense => prev - transaction.amount,
+          TransactionType.income => prev + transaction.amount,
+        };
       },
     );
     return transactions;

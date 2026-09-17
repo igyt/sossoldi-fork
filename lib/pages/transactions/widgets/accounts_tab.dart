@@ -29,6 +29,7 @@ class AccountsTab extends ConsumerWidget {
     double totalIncome = 0, totalExpense = 0;
 
     for (Transaction transaction in transactions.value ?? []) {
+      if (transaction.isBalanceReset) continue;
       final accountId = transaction.idBankAccount;
       if (transaction.type == TransactionType.income) {
         if (accountToTransactionsIncome.containsKey(accountId)) {
