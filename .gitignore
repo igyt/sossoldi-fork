@@ -56,3 +56,6 @@ __pycache__
 pyenv
 platform_config.yaml
 videos
+
+# Google OAuth
+.google_oauth_web_client_id
