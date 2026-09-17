@@ -14,7 +14,6 @@ class MoreInfoPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final moreInfoOptions = [
       ["App Version:", ref.watch(versionProvider), null],
-      ["Collaborators", "See the team behind this app", "/collaborators"],
       ["Privacy Policy", "Read more", "/privacy-policy"],
     ];
 

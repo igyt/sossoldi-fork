@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../model/bank_account.dart';
+import '../model/category_transaction.dart';
 import '../model/recurring_transaction.dart';
 import '../model/transaction.dart';
 import '../services/database/repositories/transactions_repository.dart';
@@ -34,6 +35,21 @@ Future<List<Transaction>> lastTransactions(Ref ref) async {
       .read(transactionsRepositoryProvider)
       .selectAll(limit: 5);
   return transactions;
+}
+
+class OrganizeQueue {
+  const OrganizeQueue({required this.total, required this.items});
+
+  final int total;
+  final List<Transaction> items;
+}
+
+@Riverpod(keepAlive: true)
+Future<OrganizeQueue> organizeQueue(Ref ref) async {
+  final repo = ref.read(transactionsRepositoryProvider);
+  final items = await repo.selectUncategorized(limit: 10);
+  final total = await repo.countUncategorized();
+  return OrganizeQueue(total: total, items: items);
 }
 
 @Riverpod(keepAlive: true)
@@ -150,6 +166,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
   Future<List<Transaction>> _getTransactions({int? limit}) async {
     ref.invalidate(transactionsExistsProvider);
     ref.invalidate(lastTransactionsProvider);
+    ref.invalidate(organizeQueueProvider);
     ref.invalidate(accountsProvider);
     ref.invalidate(monthlyBudgetsStatsProvider);
     ref.invalidate(monthlyTransactionsProvider);
@@ -279,6 +296,28 @@ class TransactionsNotifier extends _$TransactionsNotifier {
           .updateItem(transactionCopy);
       return await _getTransactions();
     });
+  }
+
+  Future<void> assignCategory(
+    Transaction transaction,
+    CategoryTransaction category,
+  ) async {
+    final updated = transaction.copy(idCategory: category.id);
+    await ref.read(transactionsRepositoryProvider).updateItem(updated);
+    if (state.hasValue) {
+      state = AsyncData([
+        for (final item in state.value!)
+          if (item.id == transaction.id) updated else item,
+      ]);
+    }
+    ref.invalidate(organizeQueueProvider);
+    ref.invalidate(lastTransactionsProvider);
+    ref.invalidate(monthlyBudgetsStatsProvider);
+    ref.invalidate(monthlyTransactionsProvider);
+    ref.invalidate(dashboardProvider);
+    ref.invalidate(statisticsProvider);
+    ref.invalidate(categoryMapProvider);
+    ref.invalidate(frequentCategoriesProvider);
   }
 
   Future<void> transactionSelect(Transaction transaction) async {

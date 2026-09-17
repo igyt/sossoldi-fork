@@ -278,6 +278,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ref.refresh(budgetsProvider);
                       ref.refresh(dashboardProvider);
                       ref.refresh(lastTransactionsProvider);
+                      ref.refresh(organizeQueueProvider);
                       ref.refresh(statisticsProvider);
 
                       if (context.mounted) {

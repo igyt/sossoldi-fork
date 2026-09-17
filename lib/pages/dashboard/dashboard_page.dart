@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'widgets/account_section.dart';
-import 'widgets/budgets_section.dart';
+import 'widgets/organize_section.dart';
 import '../../constants/style.dart';
 import '../../providers/categories_provider.dart';
 import '../../providers/currency_provider.dart';
@@ -13,7 +13,6 @@ import '../../ui/extensions.dart';
 import '../../ui/snack_bars/transactions_snack_bars.dart';
 import '../../ui/widgets/blur_widget.dart';
 import '../../ui/widgets/line_chart.dart';
-import '../../ui/widgets/transactions_list.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -26,7 +25,6 @@ class _HomePageState extends ConsumerState<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     ref.read(categoriesProvider);
-    final lastTransactions = ref.watch(lastTransactionsProvider);
     final currencyState = ref.watch(currencyStateProvider);
     final income = ref.watch(incomeProvider);
     final expense = ref.watch(expenseProvider);
@@ -243,31 +241,7 @@ class _HomePageState extends ConsumerState<DashboardPage> {
                   ),
                 ),
                 const AccountSection(),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      Sizes.lg,
-                      Sizes.xxl,
-                      Sizes.lg,
-                      Sizes.sm,
-                    ),
-                    child: Text(
-                      "Last transactions",
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                ),
-                lastTransactions.when(
-                  data: (transactions) => TransactionsList(
-                    ignoreBlur: false,
-                    transactions: transactions,
-                  ),
-                  loading: () => const SizedBox(),
-                  error: (err, stack) => Text('Error: $err'),
-                ),
-                const SizedBox(height: Sizes.xxl),
-                const BudgetsSection(),
+                const OrganizeSection(),
               ],
             ),
           ),
