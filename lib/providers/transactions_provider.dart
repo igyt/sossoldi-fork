@@ -47,7 +47,7 @@ class OrganizeQueue {
 @Riverpod(keepAlive: true)
 Future<OrganizeQueue> organizeQueue(Ref ref) async {
   final repo = ref.read(transactionsRepositoryProvider);
-  final items = await repo.selectUncategorized(limit: 10);
+  final items = await repo.selectUncategorized(limit: 1);
   final total = await repo.countUncategorized();
   return OrganizeQueue(total: total, items: items);
 }

@@ -92,6 +92,51 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     }
   }
 
+  Future<void> _handleTransactionImport() async {
+    var loadingShown = false;
+    try {
+      final file = await CSVFilePicker.pickCSVFile(context);
+      if (file == null || !mounted) return;
+
+      CSVFilePicker.showLoading(context, 'Importing transactions...');
+      loadingShown = true;
+      final result = await SossoldiDatabase.instance
+          .importTransactionsFromCSV(file.path);
+      if (!mounted) return;
+      CSVFilePicker.hideLoading(context);
+      loadingShown = false;
+
+      final details = <String>[
+        '${result.imported} imported',
+        '${result.duplicates} duplicate${result.duplicates == 1 ? '' : 's'} skipped',
+        '${result.invalid} invalid row${result.invalid == 1 ? '' : 's'} skipped',
+        if (result.unknownBanks.isNotEmpty)
+          'Unknown or ambiguous banks: ${result.unknownBanks.join(', ')}',
+      ];
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Transaction import complete'),
+          content: Text(details.join('\n')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      if (result.imported > 0 && mounted) Phoenix.rebirth(context);
+    } catch (e) {
+      if (!mounted) return;
+      if (loadingShown) CSVFilePicker.hideLoading(context);
+      showSnackBar(
+        context,
+        message: 'Transaction import failed: ${e.toString()}',
+      );
+    }
+  }
+
   Future<void> _handleExport() async {
     try {
       CSVFilePicker.showLoading(context, 'Exporting data...');
@@ -259,9 +304,30 @@ class _BackupPageState extends ConsumerState<BackupPage> {
         padding: const EdgeInsets.only(top: Sizes.xl, bottom: Sizes.xl),
         children: [
           _BackupCard(
+            icon: Icons.playlist_add,
+            title: 'Import transactions',
+            description:
+                'Append uncategorized CSV rows: date, amount, bank, and optional note',
+            onTap: _handleTransactionImport,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Sizes.lg,
+              Sizes.xxl,
+              Sizes.lg,
+              Sizes.sm,
+            ),
+            child: Text(
+              'FULL BACKUP',
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge!.copyWith(color: primary),
+            ),
+          ),
+          _BackupCard(
             icon: Icons.upload_file,
-            title: 'Import data',
-            description: 'Import a CSV file to update your database',
+            title: 'Restore full backup',
+            description: 'Replace all local data with a Sossoldi backup CSV',
             onTap: () {
               showDialog(
                 context: context,

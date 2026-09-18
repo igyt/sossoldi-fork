@@ -19,9 +19,34 @@ class CategorySelector extends ConsumerStatefulWidget {
 }
 
 class _CategorySelectorState extends ConsumerState<CategorySelector> {
-  void _selectCategory(BuildContext context, CategoryTransaction? category) {
+  void _commit(BuildContext context, CategoryTransaction? category) {
     ref.read(selectedCategoryProvider.notifier).setCategory(category);
     Navigator.of(context).pop();
+  }
+
+  void _selectCategory(BuildContext context, CategoryTransaction? category) {
+    if (category == null) {
+      _commit(context, null);
+      return;
+    }
+    _selectParentOrCommit(context, category);
+  }
+
+  Future<void> _selectParentOrCommit(
+    BuildContext context,
+    CategoryTransaction category,
+  ) async {
+    final subcategories = await ref.read(
+      subcategoriesProvider(category.id!).future,
+    );
+    if (!context.mounted) return;
+    final alreadySelected =
+        ref.read(selectedCategoryProvider)?.id == category.id;
+    if (subcategories.isNotEmpty && !alreadySelected) {
+      ref.read(selectedCategoryProvider.notifier).setCategory(category);
+      return;
+    }
+    _commit(context, category);
   }
 
   @override
@@ -82,7 +107,7 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
                         itemBuilder: (context, i) {
                           CategoryTransaction category = categories[i];
                           return GestureDetector(
-                            onTap: () => _selectCategory(context, category),
+                            onTap: () => _selectParentOrCommit(context, category),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: Sizes.lg,
@@ -164,7 +189,8 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
                           return Column(
                             children: [
                               ListTile(
-                                onTap: () => _selectCategory(context, category),
+                                onTap: () =>
+                                    _selectParentOrCommit(context, category),
                                 leading: RoundedIcon(
                                   icon: iconList[category.symbol],
                                   backgroundColor:
@@ -195,10 +221,8 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
                                             left: Sizes.xxl,
                                             right: Sizes.lg,
                                           ),
-                                          onTap: () => _selectCategory(
-                                            context,
-                                            subcategory,
-                                          ),
+                                          onTap: () =>
+                                              _commit(context, subcategory),
                                           leading: RoundedIcon(
                                             icon: iconList[subcategory.symbol],
                                             backgroundColor:

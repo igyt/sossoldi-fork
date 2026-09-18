@@ -43,10 +43,8 @@ class OrganizeSection extends ConsumerWidget {
                 data: (data) => data.total == 0
                     ? const SizedBox.shrink()
                     : Text(
-                        data.total > 10
-                            ? "10 of ${data.total}"
-                            : "${data.total} left",
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        "${data.total}",
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
@@ -69,14 +67,9 @@ class OrganizeSection extends ConsumerWidget {
                 ),
               );
             }
-            return Column(
-              children: [
-                for (final transaction in data.items)
-                  _OrganizeTile(
-                    key: ValueKey(transaction.id),
-                    transaction: transaction,
-                  ),
-              ],
+            return _OrganizeTile(
+              key: ValueKey(data.items.first.id),
+              transaction: data.items.first,
             );
           },
           loading: () => const Padding(
@@ -105,13 +98,13 @@ class _OrganizeTile extends ConsumerStatefulWidget {
 
 class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
   bool _busy = false;
+  CategoryTransaction? _category;
 
   Transaction get transaction => widget.transaction;
 
-  CategoryTransactionType? get _categoryType => transaction.type.categoryType;
-
-  Future<void> _assign(CategoryTransaction category) async {
-    if (_busy || category.id == null) return;
+  Future<void> _confirm() async {
+    final category = _category;
+    if (_busy || category == null || category.id == null) return;
     setState(() => _busy = true);
     try {
       await ref
@@ -146,7 +139,7 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
           scrollController: controller,
           onSelected: (category) {
             Navigator.of(context).pop();
-            _assign(category);
+            setState(() => _category = category);
           },
         ),
       ),
@@ -156,173 +149,145 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
   @override
   Widget build(BuildContext context) {
     final currency = ref.watch(currencyStateProvider);
-    final frequent = ref.watch(frequentCategoriesProvider(_categoryType));
     final signedAmount = transaction.type == TransactionType.expense
         ? "-${transaction.amount.toCurrency()}"
         : transaction.amount.toCurrency();
     final label = (transaction.note?.isEmpty ?? true)
         ? DateFormat("dd MMM").format(transaction.date)
         : transaction.note!;
+    final canConfirm = !_busy && _category?.id != null;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Sizes.md),
-      child: DefaultContainer(
-        padding: const EdgeInsets.all(Sizes.md),
-        child: Opacity(
-          opacity: _busy ? 0.5 : 1,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                        ),
-                        Text(
-                          "${DateFormat("dd MMM yyyy").format(transaction.date)}"
-                          "${transaction.bankAccountName != null ? " · ${transaction.bankAccountName}" : ""}",
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
-                        ),
-                      ],
+    return DefaultContainer(
+      padding: const EdgeInsets.all(Sizes.md),
+      child: Opacity(
+        opacity: _busy ? 0.5 : 1,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                      Text(
+                        "${DateFormat("dd MMM yyyy").format(transaction.date)}"
+                        "${transaction.bankAccountName != null ? " · ${transaction.bankAccountName}" : ""}",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  "$signedAmount${currency.symbol}",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: transaction.type.toColor(
+                      brightness: Theme.of(context).brightness,
                     ),
                   ),
-                  Text(
-                    "$signedAmount${currency.symbol}",
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: transaction.type.toColor(
-                        brightness: Theme.of(context).brightness,
+                ),
+              ],
+            ),
+            const SizedBox(height: Sizes.md),
+            SizedBox(
+              height: 56,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: FilledButton(
+                      onPressed: _busy ? null : _openSheet,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Sizes.md,
+                        ),
+                        backgroundColor: grey3,
+                        foregroundColor: blue1,
+                        disabledBackgroundColor: grey3,
+                        disabledForegroundColor: blue1,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.horizontal(
+                            left: Radius.circular(Sizes.borderRadius),
+                          ),
+                        ),
                       ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
+                              color: white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: _category == null
+                                ? const SizedBox(width: 18, height: 18)
+                                : Icon(
+                                    iconList[_category!.symbol],
+                                    color: categoryColorListTheme[_category!
+                                        .color],
+                                    size: 20,
+                                  ),
+                          ),
+                          const SizedBox(width: Sizes.sm),
+                          Expanded(
+                            child: Text(
+                              _category?.name ?? "--",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: canConfirm ? _confirm : null,
+                      style: FilledButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: green,
+                        foregroundColor: white,
+                        disabledBackgroundColor: green,
+                        disabledForegroundColor: white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.horizontal(
+                            right: Radius.circular(Sizes.borderRadius),
+                          ),
+                        ),
+                      ),
+                      child: const Icon(Icons.check_rounded, size: 30),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: Sizes.md),
-              frequent.when(
-                data: (categories) => SizedBox(
-                  height: 72,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      for (final category in categories)
-                        _CategoryChip(
-                          category: category,
-                          onTap: _busy ? null : () => _assign(category),
-                        ),
-                      _AllCategoriesChip(onTap: _busy ? null : _openSheet),
-                    ],
-                  ),
-                ),
-                loading: () => const SizedBox(height: 72),
-                error: (_, _) => TextButton(
-                  onPressed: _busy ? null : _openSheet,
-                  child: const Text("Choose category"),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({required this.category, required this.onTap});
-
-  final CategoryTransaction category;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: Sizes.md),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(Sizes.borderRadius),
-        child: SizedBox(
-          width: 72,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              RoundedIcon(
-                icon: iconList[category.symbol],
-                backgroundColor: categoryColorListTheme[category.color],
-                size: 18,
-                padding: const EdgeInsets.all(Sizes.sm),
-              ),
-              const SizedBox(height: Sizes.xxs),
-              Text(
-                category.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AllCategoriesChip extends StatelessWidget {
-  const _AllCategoriesChip({required this.onTap});
-
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: Sizes.xs),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(Sizes.borderRadius),
-        child: SizedBox(
-          width: 72,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              RoundedIcon(
-                icon: Icons.more_horiz,
-                backgroundColor: Theme.of(context).colorScheme.secondary,
-                size: 18,
-                padding: const EdgeInsets.all(Sizes.sm),
-              ),
-              const SizedBox(height: Sizes.xxs),
-              Text(
-                "All",
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class OrganizeCategorySheet extends ConsumerWidget {
+class OrganizeCategorySheet extends ConsumerStatefulWidget {
   const OrganizeCategorySheet({
     required this.type,
     required this.scrollController,
@@ -335,8 +300,28 @@ class OrganizeCategorySheet extends ConsumerWidget {
   final ValueChanged<CategoryTransaction> onSelected;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final categoryType = type.categoryType;
+  ConsumerState<OrganizeCategorySheet> createState() =>
+      _OrganizeCategorySheetState();
+}
+
+class _OrganizeCategorySheetState extends ConsumerState<OrganizeCategorySheet> {
+  int? _pendingParentId;
+
+  Future<void> _selectParent(CategoryTransaction category) async {
+    final subcategories = await ref.read(
+      subcategoriesProvider(category.id!).future,
+    );
+    if (!mounted) return;
+    if (subcategories.isNotEmpty && _pendingParentId != category.id) {
+      setState(() => _pendingParentId = category.id);
+      return;
+    }
+    widget.onSelected(category);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final categoryType = widget.type.categoryType;
     final categoriesList = ref.watch(categoriesByTypeProvider(categoryType));
     final frequentCategories = ref.watch(
       frequentCategoriesProvider(categoryType),
@@ -350,7 +335,7 @@ class OrganizeCategorySheet extends ConsumerWidget {
           AppBar(title: const Text("Category")),
           Expanded(
             child: SingleChildScrollView(
-              controller: scrollController,
+              controller: widget.scrollController,
               child: Column(
                 children: [
                   Container(
@@ -378,7 +363,7 @@ class OrganizeCategorySheet extends ConsumerWidget {
                         itemBuilder: (context, i) {
                           final category = categories[i];
                           return GestureDetector(
-                            onTap: () => onSelected(category),
+                            onTap: () => _selectParent(category),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: Sizes.lg,
@@ -445,39 +430,55 @@ class OrganizeCategorySheet extends ConsumerWidget {
                           return Column(
                             children: [
                               ListTile(
-                                onTap: () => onSelected(category),
+                                onTap: () => _selectParent(category),
                                 leading: RoundedIcon(
                                   icon: iconList[category.symbol],
                                   backgroundColor:
                                       categoryColorListTheme[category.color],
                                 ),
                                 title: Text(category.name),
+                                trailing: _pendingParentId == category.id
+                                    ? const Icon(Icons.check)
+                                    : null,
                               ),
-                              subcategories.when(
-                                data: (data) => Column(
-                                  children: data
-                                      .map(
-                                        (subcategory) => ListTile(
-                                          contentPadding:
-                                              const EdgeInsets.only(
-                                            left: Sizes.xxl,
-                                            right: Sizes.lg,
+                              AnimatedCrossFade(
+                                crossFadeState:
+                                    _pendingParentId == category.id
+                                    ? CrossFadeState.showSecond
+                                    : CrossFadeState.showFirst,
+                                duration: const Duration(milliseconds: 150),
+                                firstChild: const SizedBox.shrink(),
+                                secondChild: subcategories.when(
+                                  data: (data) => ListView(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    children: data
+                                        .map(
+                                          (subcategory) => ListTile(
+                                            contentPadding:
+                                                const EdgeInsets.only(
+                                              left: Sizes.xxl,
+                                              right: Sizes.lg,
+                                            ),
+                                            onTap: () =>
+                                                widget.onSelected(subcategory),
+                                            leading: RoundedIcon(
+                                              icon: iconList[subcategory.symbol],
+                                              backgroundColor:
+                                                  categoryColorListTheme[subcategory
+                                                      .color],
+                                            ),
+                                            title: Text(subcategory.name),
                                           ),
-                                          onTap: () => onSelected(subcategory),
-                                          leading: RoundedIcon(
-                                            icon:
-                                                iconList[subcategory.symbol],
-                                            backgroundColor:
-                                                categoryColorListTheme[subcategory
-                                                    .color],
-                                          ),
-                                          title: Text(subcategory.name),
-                                        ),
-                                      )
-                                      .toList(),
+                                        )
+                                        .toList(),
+                                  ),
+                                  loading: () => const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                  error: (_, _) => const SizedBox.shrink(),
                                 ),
-                                loading: () => const SizedBox.shrink(),
-                                error: (_, _) => const SizedBox.shrink(),
                               ),
                             ],
                           );

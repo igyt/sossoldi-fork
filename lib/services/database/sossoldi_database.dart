@@ -6,7 +6,7 @@ import 'package:csv/csv.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite/sqflite.dart' hide Transaction;
 
 // Models
 import '../../model/bank_account.dart';
@@ -207,6 +207,179 @@ class SossoldiDatabase {
     }
 
     return results;
+  }
+
+  Future<RawTransactionImportResult> importTransactionsFromCSV(
+    String csvFilePath,
+  ) async {
+    final db = await database;
+    final file = File(csvFilePath);
+    if (!await file.exists()) {
+      throw Exception('CSV file not found');
+    }
+
+    final rows = const CsvToListConverter().convert(
+      await file.readAsString(),
+      shouldParseNumbers: false,
+    );
+    if (rows.isEmpty) {
+      throw const FormatException('CSV file is empty');
+    }
+
+    final headers = rows.first
+        .map((value) => value.toString().trim().toLowerCase())
+        .toList();
+    for (final requiredHeader in const ['date', 'amount', 'bank']) {
+      if (!headers.contains(requiredHeader)) {
+        throw FormatException('CSV is missing the $requiredHeader column');
+      }
+    }
+    if (headers.contains('category') || headers.contains('idcategory')) {
+      throw const FormatException(
+        'Transaction imports must not contain a category column',
+      );
+    }
+
+    final dateIndex = headers.indexOf('date');
+    final amountIndex = headers.indexOf('amount');
+    final bankIndex = headers.indexOf('bank');
+    final noteIndex = headers.indexOf('note');
+
+    final accountRows = await db.query(
+      bankAccountTable,
+      columns: [BankAccountFields.id, BankAccountFields.name],
+      where:
+          '${BankAccountFields.active} = ? AND '
+          '${BankAccountFields.deletedAt} IS NULL',
+      whereArgs: [1],
+    );
+    final accountsByName = <String, int>{};
+    final ambiguousNames = <String>{};
+    for (final account in accountRows) {
+      final name = _normalizeBankName(
+        account[BankAccountFields.name].toString(),
+      );
+      if (accountsByName.containsKey(name)) ambiguousNames.add(name);
+      accountsByName[name] = account[BankAccountFields.id] as int;
+    }
+
+    var imported = 0;
+    var duplicates = 0;
+    var invalid = 0;
+    final unknownBanks = <String>{};
+
+    await db.transaction((txn) async {
+      for (var rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+        final row = rows[rowIndex];
+        if (row.every((value) => value.toString().trim().isEmpty)) continue;
+        if (row.length < headers.length) {
+          invalid++;
+          continue;
+        }
+
+        final date = _parseRawTransactionDate(row[dateIndex].toString());
+        final signedAmount = _parseRawTransactionAmount(
+          row[amountIndex].toString(),
+        );
+        final bank = row[bankIndex].toString().trim();
+        final normalizedBank = _normalizeBankName(bank);
+        final accountId = accountsByName[normalizedBank];
+        final note = noteIndex == -1
+            ? null
+            : row[noteIndex].toString().trim().nullIfEmpty;
+
+        if (date == null || signedAmount == null || signedAmount == 0) {
+          invalid++;
+          continue;
+        }
+        if (accountId == null || ambiguousNames.contains(normalizedBank)) {
+          unknownBanks.add(bank);
+          continue;
+        }
+
+        final type = signedAmount < 0
+            ? TransactionType.expense
+            : TransactionType.income;
+        final amount = signedAmount.abs();
+        final day = date.toIso8601String().substring(0, 10);
+        final existing = await txn.rawQuery(
+          '''
+          SELECT 1
+          FROM "$transactionTable"
+          WHERE ${TransactionFields.idBankAccount} = ?
+            AND ${TransactionFields.type} = ?
+            AND ${TransactionFields.amount} = ?
+            AND strftime('%Y-%m-%d', ${TransactionFields.date}) = ?
+            AND IFNULL(${TransactionFields.note}, '') = ?
+          LIMIT 1
+          ''',
+          [accountId, type.code, amount, day, note ?? ''],
+        );
+        if (existing.isNotEmpty) {
+          duplicates++;
+          continue;
+        }
+
+        await txn.insert(
+          transactionTable,
+          Transaction(
+            date: date,
+            amount: amount,
+            type: type,
+            note: note,
+            idCategory: null,
+            idBankAccount: accountId,
+            recurring: false,
+          ).toJson(),
+        );
+        imported++;
+      }
+    });
+
+    return RawTransactionImportResult(
+      imported: imported,
+      duplicates: duplicates,
+      invalid: invalid,
+      unknownBanks: unknownBanks.toList()..sort(),
+    );
+  }
+
+  static String _normalizeBankName(String value) =>
+      value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
+  static DateTime? _parseRawTransactionDate(String value) {
+    final text = value.trim();
+    final isoDate = DateTime.tryParse(text);
+    if (isoDate != null) return isoDate;
+
+    final match = RegExp(r'^(\d{1,2})[./](\d{1,2})[./](\d{4})$').firstMatch(
+      text,
+    );
+    if (match == null) return null;
+    final day = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    final year = int.parse(match.group(3)!);
+    final date = DateTime(year, month, day);
+    return date.year == year && date.month == month && date.day == day
+        ? date
+        : null;
+  }
+
+  static num? _parseRawTransactionAmount(String value) {
+    var text = value
+        .trim()
+        .replaceAll('\u2212', '-')
+        .replaceAll(RegExp(r'[\s\u00a0]'), '');
+    if (text.contains(',') && text.contains('.')) {
+      if (text.lastIndexOf(',') > text.lastIndexOf('.')) {
+        text = text.replaceAll('.', '').replaceAll(',', '.');
+      } else {
+        text = text.replaceAll(',', '');
+      }
+    } else {
+      text = text.replaceAll(',', '.');
+    }
+    return num.tryParse(text);
   }
 
   Future fillDemoData({int countOfGeneratedTransaction = 10000}) async {
@@ -415,4 +588,22 @@ class SossoldiDatabase {
     final path = join(databasePath, dbName);
     databaseFactory.deleteDatabase(path);
   }
+}
+
+extension on String {
+  String? get nullIfEmpty => isEmpty ? null : this;
+}
+
+class RawTransactionImportResult {
+  const RawTransactionImportResult({
+    required this.imported,
+    required this.duplicates,
+    required this.invalid,
+    required this.unknownBanks,
+  });
+
+  final int imported;
+  final int duplicates;
+  final int invalid;
+  final List<String> unknownBanks;
 }
