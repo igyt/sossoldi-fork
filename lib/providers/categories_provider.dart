@@ -8,6 +8,7 @@ import '../services/database/repositories/budget_repository.dart';
 import '../services/database/repositories/recurring_transactions_repository.dart';
 import 'budgets_provider.dart';
 import 'recurring_transactions_provider.dart';
+import 'statistics_provider.dart';
 import 'transactions_provider.dart';
 
 part 'categories_provider.g.dart';
@@ -260,6 +261,7 @@ Future<List<CategoryTransaction>> frequentCategories(
 @Riverpod(keepAlive: true)
 Future<Map<CategoryTransaction, double>> categoryMap(Ref ref) async {
   final categoryType = ref.watch(categoryTypeProvider);
+  final myCosts = ref.watch(myCostsProvider);
   final dateStart = ref.watch(filterDateStartProvider);
   final dateEnd = ref.watch(filterDateEndProvider);
 
@@ -269,15 +271,16 @@ Future<Map<CategoryTransaction, double>> categoryMap(Ref ref) async {
     categoriesByTypeProvider(categoryType).future,
   );
 
-  final transactions = (await ref
-          .read(transactionsRepositoryProvider)
-          .selectAll(
-            transactionType: [categoryType.transactionType.code],
-            dateRangeStart: dateStart,
-            dateRangeEnd: dateEnd,
-          ))
-      .where((transaction) => !transaction.isBalanceReset)
-      .toList();
+  final transactions =
+      (await ref
+              .read(transactionsRepositoryProvider)
+              .selectAll(
+                transactionType: [categoryType.transactionType.code],
+                dateRangeStart: dateStart,
+                dateRangeEnd: dateEnd,
+              ))
+          .where((transaction) => !transaction.isBalanceReset)
+          .toList();
 
   if (transactions.isEmpty) {
     return {};
@@ -292,7 +295,9 @@ Future<Map<CategoryTransaction, double>> categoryMap(Ref ref) async {
         )
         .fold(
           0.0,
-          (previousValue, transaction) => previousValue + transaction.amount,
+          (previousValue, transaction) =>
+              previousValue +
+              _statisticsAmount(transaction, categoryType, myCosts),
         );
 
     categoriesMap[category] = categoryType == CategoryTransactionType.income
@@ -306,21 +311,24 @@ Future<Map<CategoryTransaction, double>> categoryMap(Ref ref) async {
 @Riverpod(keepAlive: true)
 Future<double> categoryTotalAmount(Ref ref) async {
   final categoryType = ref.watch(categoryTypeProvider);
+  final myCosts = ref.watch(myCostsProvider);
   final dateStart = ref.watch(filterDateStartProvider);
   final dateEnd = ref.watch(filterDateEndProvider);
 
-  final transactions = (await ref
-          .read(transactionsRepositoryProvider)
-          .selectAll(
-            transactionType: [categoryType.transactionType.code],
-            dateRangeStart: dateStart,
-            dateRangeEnd: dateEnd,
-          ))
-      .where((transaction) => !transaction.isBalanceReset);
+  final transactions =
+      (await ref
+              .read(transactionsRepositoryProvider)
+              .selectAll(
+                transactionType: [categoryType.transactionType.code],
+                dateRangeStart: dateStart,
+                dateRangeEnd: dateEnd,
+              ))
+          .where((transaction) => !transaction.isBalanceReset);
 
   final totalAmount = transactions.fold<double>(
     0,
-    (previousValue, transaction) => previousValue + transaction.amount,
+    (previousValue, transaction) =>
+        previousValue + _statisticsAmount(transaction, categoryType, myCosts),
   );
 
   return categoryType == CategoryTransactionType.income
@@ -331,6 +339,7 @@ Future<double> categoryTotalAmount(Ref ref) async {
 @Riverpod(keepAlive: true)
 Future<List<double>> monthlyTotals(Ref ref) async {
   final categoryType = ref.watch(categoryTypeProvider);
+  final myCosts = ref.watch(myCostsProvider);
   final dateStart = ref.watch(filterDateStartProvider);
   //final dateEnd = ref.watch(filterDateEndProvider);
 
@@ -339,20 +348,36 @@ Future<List<double>> monthlyTotals(Ref ref) async {
   final startOfYear = DateTime(dateStart.year, 1, 1);
   final endOfYear = DateTime(dateStart.year, 12, 31);
 
-  final transactions = (await ref
-          .read(transactionsRepositoryProvider)
-          .selectAll(
-            transactionType: [categoryType.transactionType.code],
-            dateRangeStart: startOfYear,
-            dateRangeEnd: endOfYear,
-          ))
-      .where((transaction) => !transaction.isBalanceReset);
+  final transactions =
+      (await ref
+              .read(transactionsRepositoryProvider)
+              .selectAll(
+                transactionType: [categoryType.transactionType.code],
+                dateRangeStart: startOfYear,
+                dateRangeEnd: endOfYear,
+              ))
+          .where((transaction) => !transaction.isBalanceReset);
 
   for (var transaction in transactions) {
     int month = transaction.date.month - 1;
-    monthlyTotals[month] += transaction.amount.abs();
+    monthlyTotals[month] += _statisticsAmount(
+      transaction,
+      categoryType,
+      myCosts,
+    ).abs();
   }
   return monthlyTotals;
+}
+
+double _statisticsAmount(
+  Transaction transaction,
+  CategoryTransactionType categoryType,
+  bool myCosts,
+) {
+  if (myCosts && categoryType == CategoryTransactionType.expense) {
+    return transaction.amount.toDouble() / transaction.peopleConcerned;
+  }
+  return transaction.amount.toDouble();
 }
 
 class ParentCategoryWithSubcategoriesData {
@@ -387,8 +412,7 @@ Future<List<ParentCategoryWithSubcategoriesData>> categoryWithSubcategoriesData(
     num total = 0;
     List<Transaction> categoryTransactions = [];
     final parentTransactions = transactions.where(
-      (trnsc) =>
-          !trnsc.isBalanceReset && trnsc.idCategory == parentCategory.id,
+      (trnsc) => !trnsc.isBalanceReset && trnsc.idCategory == parentCategory.id,
     );
     categoryTransactions.addAll(parentTransactions);
     total += parentTransactions.fold(
@@ -400,8 +424,7 @@ Future<List<ParentCategoryWithSubcategoriesData>> categoryWithSubcategoriesData(
     );
     for (var subcategory in subcategories) {
       final subcategoryTransactions = transactions.where(
-        (trnsc) =>
-            !trnsc.isBalanceReset && trnsc.idCategory == subcategory.id,
+        (trnsc) => !trnsc.isBalanceReset && trnsc.idCategory == subcategory.id,
       );
       num subcategoryTotal = subcategoryTransactions.fold(
         0,

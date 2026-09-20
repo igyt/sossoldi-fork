@@ -7,6 +7,14 @@ import 'accounts_provider.dart';
 part 'statistics_provider.g.dart';
 
 @Riverpod(keepAlive: true)
+class MyCosts extends _$MyCosts {
+  @override
+  bool build() => false;
+
+  void setValue(bool value) => state = value;
+}
+
+@Riverpod(keepAlive: true)
 class HighlightedMonth extends _$HighlightedMonth {
   @override
   int build() => DateTime.now().month - 1;

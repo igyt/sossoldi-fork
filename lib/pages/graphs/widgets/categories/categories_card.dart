@@ -4,6 +4,7 @@ import '../../../../ui/widgets/category_type_button.dart';
 import '../../../../ui/widgets/default_container.dart';
 import '../../../../model/category_transaction.dart';
 import '../../../../providers/categories_provider.dart';
+import '../../../../providers/statistics_provider.dart';
 import '../../../../ui/device.dart';
 import '../../../transactions/widgets/month_selector.dart';
 import '../card_label.dart';
@@ -27,6 +28,7 @@ class CategoriesCardState extends ConsumerState<CategoriesCard> {
     final categoryMap = ref.watch(categoryMapProvider);
     final categoryTotalAmount =
         ref.watch(categoryTotalAmountProvider).value ?? 0;
+    final myCosts = ref.watch(myCostsProvider);
 
     return Column(
       spacing: Sizes.sm,
@@ -38,6 +40,28 @@ class CategoriesCardState extends ConsumerState<CategoriesCard> {
             children: [
               const MonthSelector(type: MonthSelectorType.simple),
               const CategoryTypeButton(),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Checkbox(
+                      value: myCosts,
+                      onChanged: (value) => ref
+                          .read(myCostsProvider.notifier)
+                          .setValue(value ?? false),
+                    ),
+                    GestureDetector(
+                      onTap: () =>
+                          ref.read(myCostsProvider.notifier).setValue(!myCosts),
+                      child: Text(
+                        "My costs",
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               categoryMap.when(
                 data: (categories) {
                   _categoriesCount = categories.length;

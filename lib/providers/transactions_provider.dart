@@ -76,6 +76,18 @@ class SelectedDate extends _$SelectedDate {
   void setDate(DateTime date) => state = date;
 }
 
+@Riverpod(keepAlive: true)
+class SelectedPeopleConcerned extends _$SelectedPeopleConcerned {
+  @override
+  int build() => 1;
+
+  void setValue(int value) => state = value < 1 ? 1 : value;
+
+  void increment() => setValue(state + 1);
+
+  void decrement() => setValue(state - 1);
+}
+
 // Recurring Payment
 @Riverpod(keepAlive: true)
 class SelectedRecurringPay extends _$SelectedRecurringPay {
@@ -173,6 +185,8 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(dashboardProvider);
     ref.invalidate(statisticsProvider);
     ref.invalidate(categoryMapProvider);
+    ref.invalidate(categoryTotalAmountProvider);
+    ref.invalidate(monthlyTotalsProvider);
     final dateStart = ref.watch(filterDateStartProvider);
     final dateEnd = ref.watch(filterDateEndProvider);
     final transactions = await ref
@@ -183,18 +197,18 @@ class TransactionsNotifier extends _$TransactionsNotifier {
           limit: limit,
         );
 
-    ref.read(totalAmountProvider.notifier).state = transactions.fold<num>(
-      0,
-      (prev, transaction) {
-        if (transaction.isBalanceReset) return prev;
-        return switch (transaction.type) {
-          TransactionType.transfer => prev,
-          TransactionType.adjustment => prev,
-          TransactionType.expense => prev - transaction.amount,
-          TransactionType.income => prev + transaction.amount,
-        };
-      },
-    );
+    ref.read(totalAmountProvider.notifier).state = transactions.fold<num>(0, (
+      prev,
+      transaction,
+    ) {
+      if (transaction.isBalanceReset) return prev;
+      return switch (transaction.type) {
+        TransactionType.transfer => prev,
+        TransactionType.adjustment => prev,
+        TransactionType.expense => prev - transaction.amount,
+        TransactionType.income => prev + transaction.amount,
+      };
+    });
     return transactions;
   }
 
@@ -215,6 +229,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     state = const AsyncLoading();
 
     final TransactionType t = type ?? ref.read(selectedTransactionTypeProvider);
+    final peopleConcerned = t == TransactionType.expense
+        ? ref.read(selectedPeopleConcernedProvider)
+        : 1;
 
     Transaction transaction = Transaction(
       date: date ?? ref.read(selectedDateProvider),
@@ -225,11 +242,13 @@ class TransactionsNotifier extends _$TransactionsNotifier {
       idBankAccountTransfer: account != null
           ? null
           : ref.read(bankAccountTransferProvider)?.id,
-      idCategory: account != null ||
+      idCategory:
+          account != null ||
               t == TransactionType.transfer ||
               t == TransactionType.adjustment
           ? null
           : ref.read(selectedCategoryProvider)?.id,
+      peopleConcerned: peopleConcerned,
       recurring: account != null
           ? false
           : ref.read(selectedRecurringPayProvider),
@@ -281,10 +300,12 @@ class TransactionsNotifier extends _$TransactionsNotifier {
           ? bankAccountTransfer?.id
           : null,
       idCategory:
-          type == TransactionType.transfer ||
-              type == TransactionType.adjustment
+          type == TransactionType.transfer || type == TransactionType.adjustment
           ? null
           : category?.id,
+      peopleConcerned: type == TransactionType.expense
+          ? ref.read(selectedPeopleConcernedProvider)
+          : 1,
       idRecurringTransaction: recurringTransactionId,
       recurring: recurringTransactionId != null ? true : false,
     );
@@ -317,6 +338,8 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(dashboardProvider);
     ref.invalidate(statisticsProvider);
     ref.invalidate(categoryMapProvider);
+    ref.invalidate(categoryTotalAmountProvider);
+    ref.invalidate(monthlyTotalsProvider);
     ref.invalidate(frequentCategoriesProvider);
   }
 
@@ -349,6 +372,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
         : null;
     ref.read(selectedTransactionTypeProvider.notifier).state = transaction.type;
     ref.read(selectedDateProvider.notifier).state = transaction.date;
+    ref
+        .read(selectedPeopleConcernedProvider.notifier)
+        .setValue(transaction.peopleConcerned);
   }
 
   Future<void> delete(int transactionId) async {
@@ -372,6 +398,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(selectedBankAccountProvider);
     ref.invalidate(bankAccountTransferProvider);
     ref.invalidate(selectedDateProvider);
+    ref.invalidate(selectedPeopleConcernedProvider);
     ref.invalidate(selectedCategoryProvider);
     ref.invalidate(selectedRecurringPayProvider);
     ref.invalidate(intervalProvider);

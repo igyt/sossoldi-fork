@@ -21,6 +21,7 @@ class TransactionFields extends BaseEntityFields {
   static String bankAccountName = 'bankAccountName';
   static String idBankAccountTransfer = 'idBankAccountTransfer';
   static String bankAccountTransferName = 'bankAccountTransferName';
+  static String peopleConcerned = 'peopleConcerned';
   static String recurring = 'recurring';
   static String idRecurringTransaction = 'idRecurringTransaction';
   static String createdAt = BaseEntityFields.getCreatedAt;
@@ -35,6 +36,7 @@ class TransactionFields extends BaseEntityFields {
     idCategory,
     idBankAccount,
     idBankAccountTransfer,
+    peopleConcerned,
     recurring,
     idRecurringTransaction,
     BaseEntityFields.createdAt,
@@ -112,6 +114,7 @@ class Transaction extends BaseEntity {
   final String? bankAccountName;
   final int? idBankAccountTransfer;
   final String? bankAccountTransferName;
+  final int peopleConcerned;
   final bool recurring;
   final int? idRecurringTransaction;
 
@@ -130,6 +133,7 @@ class Transaction extends BaseEntity {
     this.bankAccountName,
     this.idBankAccountTransfer,
     this.bankAccountTransferName,
+    this.peopleConcerned = 1,
     required this.recurring,
     this.idRecurringTransaction,
     super.createdAt,
@@ -149,6 +153,7 @@ class Transaction extends BaseEntity {
     Object? idCategory = _unset,
     int? idBankAccount,
     Object? idBankAccountTransfer = _unset,
+    int? peopleConcerned,
     bool? recurring,
     int? idRecurringTransaction,
     DateTime? createdAt,
@@ -164,6 +169,7 @@ class Transaction extends BaseEntity {
     idBankAccountTransfer: idBankAccountTransfer == _unset
         ? this.idBankAccountTransfer
         : idBankAccountTransfer as int?,
+    peopleConcerned: peopleConcerned ?? this.peopleConcerned,
     recurring: recurring ?? this.recurring,
     idRecurringTransaction:
         idRecurringTransaction ?? this.idRecurringTransaction,
@@ -189,6 +195,7 @@ class Transaction extends BaseEntity {
           json[TransactionFields.idBankAccountTransfer] as int?,
       bankAccountTransferName:
           json[TransactionFields.bankAccountTransferName] as String?,
+      peopleConcerned: json[TransactionFields.peopleConcerned] as int? ?? 1,
       recurring: json[TransactionFields.recurring] == 1,
       idRecurringTransaction:
           json[TransactionFields.idRecurringTransaction] as int?,
@@ -211,6 +218,7 @@ class Transaction extends BaseEntity {
       TransactionFields.idCategory: idCategory,
       TransactionFields.idBankAccount: idBankAccount,
       TransactionFields.idBankAccountTransfer: idBankAccountTransfer,
+      TransactionFields.peopleConcerned: peopleConcerned,
       TransactionFields.recurring: recurring ? 1 : 0,
       TransactionFields.idRecurringTransaction: idRecurringTransaction,
       BaseEntityFields.createdAt: createdAtDate,

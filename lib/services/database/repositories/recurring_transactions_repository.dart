@@ -262,6 +262,7 @@ class RecurringTransactionRepository {
         note: transaction.note,
         idCategory: transaction.idCategory,
         idBankAccount: transaction.idBankAccount,
+        peopleConcerned: transaction.peopleConcerned,
         recurring: true,
         idRecurringTransaction: transaction.id,
         createdAt: DateTime.now(),

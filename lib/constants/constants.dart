@@ -298,7 +298,7 @@ List<Color> categoryColorListTheme = categoryColorList;
 List<Color> accountColorListTheme = accountColorList;
 
 // external URLs
-const String githubUrl = 'https://github.com/RIP-Comm/sossoldi';
+const String githubUrl = 'https://github.com/igyt/Sossoldi-fork';
 const String linkedinUrl = 'https://www.linkedin.com/company/sossoldi';
 const String youtubeUrl = 'https://www.youtube.com/@Sossoldi-app';
 const String discordUrl = 'https://discord.sossoldi.com';

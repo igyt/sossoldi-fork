@@ -59,7 +59,7 @@ class _GraphsPageState extends ConsumerState<GraphsPage> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                "Available liquidity",
+                                "Net worth",
                                 style: Theme.of(context).textTheme.titleLarge
                                     ?.copyWith(
                                       color: Theme.of(

@@ -17,7 +17,6 @@ import '../pages/planning/widget/edit_recurring_transaction.dart';
 import '../pages/search/search_page.dart';
 import '../pages/settings/backup/backup_page.dart';
 import '../pages/settings/general/general_settings_page.dart';
-import '../pages/settings/infos/more_info_page.dart';
 import '../pages/settings/infos/privacy_policy_page.dart';
 import '../pages/settings/notifications/notifications_settings.dart';
 import '../pages/settings/settings_page.dart';
@@ -63,8 +62,6 @@ Route<dynamic> makeRoute(RouteSettings settings) {
         settings.name,
         CreateEditSubcategoryPage(category: args?['category']),
       );
-    case '/more-info':
-      return buildAdaptiveRoute(settings.name, const MoreInfoPage());
     case '/privacy-policy':
       return buildAdaptiveRoute(settings.name, const PrivacyPolicyPage());
     case '/account':

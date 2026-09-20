@@ -22,6 +22,7 @@ class RecurringPaymentSection extends ConsumerWidget {
       ref.read(intervalProvider.notifier).setValue(Recurrence.monthly);
       ref.invalidate(selectedBankAccountProvider);
       ref.invalidate(selectedCategoryProvider);
+      ref.invalidate(selectedPeopleConcernedProvider);
       ref.invalidate(endDateProvider);
       Navigator.of(context).pushNamed(
         "/add-page",

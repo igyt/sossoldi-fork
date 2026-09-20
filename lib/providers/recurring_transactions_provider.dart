@@ -46,6 +46,9 @@ class RecurringTransactionsNotifier extends _$RecurringTransactionsNotifier {
     final bankAccount = ref.read(selectedBankAccountProvider)!;
     final category = ref.read(selectedCategoryProvider);
     final recurrency = ref.read(intervalProvider);
+    final peopleConcerned = type == TransactionType.expense
+        ? ref.read(selectedPeopleConcernedProvider)
+        : 1;
 
     RecurringTransaction transaction = RecurringTransaction(
       amount: amount,
@@ -55,6 +58,7 @@ class RecurringTransactionsNotifier extends _$RecurringTransactionsNotifier {
       type: type,
       idBankAccount: bankAccount.id!,
       idCategory: category!.id!,
+      peopleConcerned: peopleConcerned,
       recurrency: recurrency,
       createdAt: date,
       updatedAt: date,
@@ -82,6 +86,7 @@ class RecurringTransactionsNotifier extends _$RecurringTransactionsNotifier {
           note: label,
           idBankAccount: bankAccount.id!,
           idCategory: category.id!,
+          peopleConcerned: peopleConcerned,
           idRecurringTransaction: insertedTransaction!.id,
           recurring: true,
         );
@@ -97,19 +102,21 @@ class RecurringTransactionsNotifier extends _$RecurringTransactionsNotifier {
     final bankAccount = ref.read(selectedBankAccountProvider)!;
     final recurrency = ref.read(intervalProvider);
     final category = ref.read(selectedCategoryProvider);
+    final selected = ref.read(selectedRecurringTransactionUpdateProvider)!;
 
-    final RecurringTransaction transaction = ref
-        .read(selectedRecurringTransactionUpdateProvider)!
-        .copy(
-          fromDate: ref.read(selectedDateProvider),
-          toDate: ref.read(endDateProvider),
-          recurrency: recurrency,
-          amount: amount,
-          note: label,
-          idBankAccount: bankAccount.id!,
-          idCategory: category?.id,
-          updatedAt: DateTime.now(),
-        );
+    final RecurringTransaction transaction = selected.copy(
+      fromDate: ref.read(selectedDateProvider),
+      toDate: ref.read(endDateProvider),
+      recurrency: recurrency,
+      amount: amount,
+      note: label,
+      idBankAccount: bankAccount.id!,
+      idCategory: category?.id,
+      peopleConcerned: selected.type == TransactionType.expense
+          ? ref.read(selectedPeopleConcernedProvider)
+          : 1,
+      updatedAt: DateTime.now(),
+    );
 
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
@@ -135,6 +142,9 @@ class RecurringTransactionsNotifier extends _$RecurringTransactionsNotifier {
         .firstWhere((element) => element.id == transaction.idBankAccount);
     ref.read(intervalProvider.notifier).setValue(transaction.recurrency);
     ref.read(endDateProvider.notifier).setDate(transaction.toDate);
+    ref
+        .read(selectedPeopleConcernedProvider.notifier)
+        .setValue(transaction.peopleConcerned);
   }
 
   Future<void> delete(int transactionId) async {

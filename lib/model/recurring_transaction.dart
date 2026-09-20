@@ -14,6 +14,7 @@ class RecurringTransactionFields extends BaseEntityFields {
   static String recurrency = 'recurrency';
   static String idCategory = 'idCategory';
   static String idBankAccount = 'idBankAccount';
+  static String peopleConcerned = 'peopleConcerned';
   static String lastInsertion = 'lastInsertion';
   static String createdAt = BaseEntityFields.getCreatedAt;
   static String updatedAt = BaseEntityFields.getUpdatedAt;
@@ -28,6 +29,7 @@ class RecurringTransactionFields extends BaseEntityFields {
     recurrency,
     idCategory,
     idBankAccount,
+    peopleConcerned,
     lastInsertion,
     BaseEntityFields.createdAt,
     BaseEntityFields.updatedAt,
@@ -111,6 +113,7 @@ class RecurringTransaction extends BaseEntity {
   final Recurrence recurrency;
   final int idCategory;
   final int idBankAccount;
+  final int peopleConcerned;
   final TransactionType type;
   final DateTime? lastInsertion;
 
@@ -124,6 +127,7 @@ class RecurringTransaction extends BaseEntity {
     required this.idCategory,
     required this.type,
     required this.idBankAccount,
+    this.peopleConcerned = 1,
     this.lastInsertion,
     super.createdAt,
     super.updatedAt,
@@ -139,6 +143,7 @@ class RecurringTransaction extends BaseEntity {
     int? idCategory,
     TransactionType? type,
     int? idBankAccount,
+    int? peopleConcerned,
     DateTime? lastInsertion,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -152,6 +157,7 @@ class RecurringTransaction extends BaseEntity {
     idCategory: idCategory ?? this.idCategory,
     type: type ?? this.type,
     idBankAccount: idBankAccount ?? this.idBankAccount,
+    peopleConcerned: peopleConcerned ?? this.peopleConcerned,
     lastInsertion: lastInsertion ?? this.lastInsertion,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -176,6 +182,8 @@ class RecurringTransaction extends BaseEntity {
           json[RecurringTransactionFields.type] as String,
         ),
         idBankAccount: json[RecurringTransactionFields.idBankAccount] as int,
+        peopleConcerned:
+            json[RecurringTransactionFields.peopleConcerned] as int? ?? 1,
         lastInsertion: json[RecurringTransactionFields.lastInsertion] != null
             ? DateTime.parse(
                 json[RecurringTransactionFields.lastInsertion] as String,
@@ -195,6 +203,7 @@ class RecurringTransaction extends BaseEntity {
     RecurringTransactionFields.recurrency: recurrency.toJson(),
     RecurringTransactionFields.idCategory: idCategory,
     RecurringTransactionFields.idBankAccount: idBankAccount,
+    RecurringTransactionFields.peopleConcerned: peopleConcerned,
     RecurringTransactionFields.lastInsertion: lastInsertion?.toIso8601String(),
     BaseEntityFields.createdAt: createdAt?.toIso8601String(),
     BaseEntityFields.updatedAt: updatedAt?.toIso8601String(),

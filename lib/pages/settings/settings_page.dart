@@ -17,11 +17,12 @@ import '../../providers/accounts_provider.dart';
 import '../../providers/budgets_provider.dart';
 import '../../providers/categories_provider.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/statistics_provider.dart';
 import '../../providers/transactions_provider.dart';
 import '../../ui/device.dart';
 
-var settingsOptions = [
+List<List<Object?>> get settingsOptions => [
   [
     Icons.settings,
     "General Settings",
@@ -53,13 +54,6 @@ var settingsOptions = [
     "Manage your notifications settings",
     "/notifications-settings",
   ],
-  [
-    Icons.feedback,
-    "Leave a feedback",
-    "Complete a small form to report a bug or leave a feedback",
-    "https://feedback.sossoldi.com",
-  ],
-  [Icons.info, "App Info", "Learn more about us and the app", "/more-info"],
 ];
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -114,6 +108,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final version = ref.watch(versionProvider);
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -198,7 +194,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Open source, built by the community',
+                'App version: $version',
                 style: Theme.of(context).textTheme.bodySmall!.copyWith(
                   color: Theme.of(context).colorScheme.outline,
                 ),
@@ -209,21 +205,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   IconButton(
                     icon: const FaIcon(FontAwesomeIcons.github),
                     onPressed: () => launchUrl(Uri.parse(githubUrl)),
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  IconButton(
-                    icon: const FaIcon(FontAwesomeIcons.linkedin),
-                    onPressed: () => launchUrl(Uri.parse(linkedinUrl)),
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  IconButton(
-                    icon: const FaIcon(FontAwesomeIcons.youtube),
-                    onPressed: () => launchUrl(Uri.parse(youtubeUrl)),
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  IconButton(
-                    icon: const FaIcon(FontAwesomeIcons.discord),
-                    onPressed: () => launchUrl(Uri.parse(discordUrl)),
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ],
