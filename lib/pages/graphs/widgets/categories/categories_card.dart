@@ -31,10 +31,11 @@ class CategoriesCardState extends ConsumerState<CategoriesCard> {
     final myCosts = ref.watch(myCostsProvider);
 
     return Column(
-      spacing: Sizes.sm,
+      spacing: Sizes.md,
       children: [
-        const CardLabel(label: "Categories"),
+        const CardLabel(label: "Categories", subtitle: "Where the money goes"),
         DefaultContainer(
+          margin: EdgeInsets.zero,
           child: Column(
             spacing: Sizes.xl,
             children: [

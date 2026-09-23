@@ -29,17 +29,22 @@ class LinearProgressBar extends StatelessWidget {
               : darkCategoryColorList)
         : (type == BarType.account ? accountColorList : categoryColorList);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(Sizes.borderRadiusLarge),
-      child: LinearProgressIndicator(
-        value: amount != 0 ? amount / total : 0,
-        minHeight: 16,
-        backgroundColor: colorList[colorIndex % colorList.length].withValues(
-          alpha: 0.3,
-        ),
-        valueColor: AlwaysStoppedAnimation<Color>(
-          colorList[colorIndex % colorList.length],
-        ),
+    final color = colorList[colorIndex % colorList.length];
+    final value = amount != 0 && total != 0
+        ? (amount / total).clamp(0.0, 1.0).toDouble()
+        : 0.0;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: value),
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 700),
+      curve: Curves.easeOutCubic,
+      builder: (context, current, _) => LinearProgressIndicator(
+        value: current,
+        minHeight: 10,
+        backgroundColor: color.withValues(alpha: 0.18),
+        valueColor: AlwaysStoppedAnimation<Color>(color),
         borderRadius: BorderRadius.circular(Sizes.borderRadiusLarge),
       ),
     );

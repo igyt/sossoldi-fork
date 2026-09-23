@@ -100,8 +100,9 @@ class _BackupPageState extends ConsumerState<BackupPage> {
 
       CSVFilePicker.showLoading(context, 'Importing transactions...');
       loadingShown = true;
-      final result = await SossoldiDatabase.instance
-          .importTransactionsFromCSV(file.path);
+      final result = await SossoldiDatabase.instance.importTransactionsFromCSV(
+        file.path,
+      );
       if (!mounted) return;
       CSVFilePicker.hideLoading(context);
       loadingShown = false;

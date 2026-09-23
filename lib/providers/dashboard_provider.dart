@@ -5,87 +5,63 @@ import '../services/database/repositories/transactions_repository.dart';
 
 part 'dashboard_provider.g.dart';
 
-@Riverpod(keepAlive: true)
-class Income extends _$Income {
-  @override
-  num build() => 0;
+class DashboardSnapshot {
+  const DashboardSnapshot({
+    required this.income,
+    required this.expense,
+    required this.currentMonth,
+    required this.previousMonth,
+  });
 
-  void setValue(num value) => state = value;
+  final num income;
+  final num expense;
+  final List<FlSpot> currentMonth;
+  final List<FlSpot> previousMonth;
+
+  num get balance => income - expense;
+  bool get hasCashFlow => income != 0 || expense != 0;
 }
 
 @Riverpod(keepAlive: true)
-class Expense extends _$Expense {
-  @override
-  num build() => 0;
+Future<DashboardSnapshot> dashboard(Ref ref) async {
+  final repository = ref.read(transactionsRepositoryProvider);
+  final results = await Future.wait([
+    repository.currentMonthDailyTransactions(),
+    repository.lastMonthDailyTransactions(),
+  ]);
+  final currentMonth = results[0];
+  final previousMonth = results[1];
 
-  void setValue(num value) => state = value;
+  final income = currentMonth.fold<num>(
+    0,
+    (total, row) => total + _number(row['income']),
+  );
+  final expense = currentMonth.fold<num>(
+    0,
+    (total, row) => total + _number(row['expense']),
+  );
+
+  return DashboardSnapshot(
+    income: income,
+    expense: expense,
+    currentMonth: _toCumulativeSpots(currentMonth),
+    previousMonth: _toCumulativeSpots(previousMonth),
+  );
 }
 
-@Riverpod(keepAlive: true)
-class CurrentMonthList extends _$CurrentMonthList {
-  @override
-  List<FlSpot> build() => [];
+num _number(Object? value) =>
+    value is num ? value : num.tryParse('$value') ?? 0;
 
-  void setValue(List<FlSpot> value) => state = value;
-}
-
-@Riverpod(keepAlive: true)
-class LastMonthList extends _$CurrentMonthList {
-  @override
-  List<FlSpot> build() => [];
-
-  void setValue(List<FlSpot> value) => state = value;
-}
-
-@riverpod
-Future<void> dashboard(Ref ref) async {
-  final currentMonth = await ref
-      .read(transactionsRepositoryProvider)
-      .currentMonthDailyTransactions();
-  final lastMonth = await ref
-      .read(transactionsRepositoryProvider)
-      .lastMonthDailyTransactions();
-  ref
-      .read(incomeProvider.notifier)
-      .setValue(
-        currentMonth.fold(
-          0,
-          (previousValue, element) => previousValue + element['income'],
-        ),
-      );
-  ref
-      .read(expenseProvider.notifier)
-      .setValue(
-        currentMonth.fold(
-          0,
-          (previousValue, element) => previousValue - element['expense'],
-        ),
-      );
-
+List<FlSpot> _toCumulativeSpots(List<dynamic> source) {
+  final rows = source.map((row) => Map<String, Object?>.from(row)).toList()
+    ..sort((a, b) => '${a['day']}'.compareTo('${b['day']}'));
   double runningTotal = 0;
-  ref
-      .read(currentMonthListProvider.notifier)
-      .setValue(
-        currentMonth.map((e) {
-          runningTotal += e['income'] - e['expense'];
-          return FlSpot(
-            double.parse(e['day'].substring(8)) - 1,
-            double.parse(runningTotal.toStringAsFixed(2)),
-          );
-        }).toList(),
-      );
 
-  runningTotal = 0; // Reset the running total for the next calculation
-
-  ref
-      .read(lastMonthListProvider.notifier)
-      .setValue(
-        lastMonth.map((e) {
-          runningTotal += e['income'] - e['expense'];
-          return FlSpot(
-            double.parse(e['day'].substring(8)) - 1,
-            double.parse(runningTotal.toStringAsFixed(2)),
-          );
-        }).toList(),
-      );
+  return rows
+      .map((row) {
+        runningTotal += _number(row['income']) - _number(row['expense']);
+        final day = DateTime.tryParse('${row['day']}')?.day ?? 1;
+        return FlSpot(day - 1.0, double.parse(runningTotal.toStringAsFixed(2)));
+      })
+      .toList(growable: false);
 }

@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 
 import '../../constants/style.dart';
 import '../device.dart';
+import 'dashboard_visual_theme.dart';
 
 class AppTheme {
   static final lightTheme = ThemeData(
     adaptations: [const SwitchThemeAdaptation()],
+    extensions: const [DashboardVisualTheme.light],
     cupertinoOverrideTheme: const CupertinoThemeData(
       brightness: Brightness.light,
     ),
@@ -207,6 +209,7 @@ class AppTheme {
 
   static final darkTheme = ThemeData(
     adaptations: [const SwitchThemeAdaptation()],
+    extensions: const [DashboardVisualTheme.dark],
     cupertinoOverrideTheme: const CupertinoThemeData(
       brightness: Brightness.dark,
     ),

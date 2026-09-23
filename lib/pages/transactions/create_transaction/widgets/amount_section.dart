@@ -22,7 +22,8 @@ class AmountSection extends ConsumerStatefulWidget {
 
 class _AmountSectionState extends ConsumerState<AmountSection> {
   static const List<String> _titleList = ['Income', 'Expense', 'Transfer'];
-  static const List<TransactionType> _selectableTypes = TransactionType.userSelectable;
+  static const List<TransactionType> _selectableTypes =
+      TransactionType.userSelectable;
 
   List<bool> _typeToggleState = [false, true, false];
 
@@ -68,52 +69,52 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
             )
           else
             Container(
-            height: 30,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: Sizes.xxs * 0.5),
-            child: ToggleButtons(
-              direction: Axis.horizontal,
-              onPressed: (int index) {
-                List<bool> newSelection = [];
-                for (TransactionType type in _selectableTypes) {
-                  if (type == _selectableTypes[index]) {
-                    newSelection.add(true);
-                    ref
-                        .read(selectedTransactionTypeProvider.notifier)
-                        .setType(type);
-                  } else {
-                    newSelection.add(false);
-                  }
-                }
-                ref.invalidate(bankAccountTransferProvider);
-                setState(() => _typeToggleState = newSelection);
-              },
-              borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
-              renderBorder: false,
-              selectedColor: Colors.transparent,
-              fillColor: Colors.transparent,
-              constraints: BoxConstraints(
-                minHeight: 26,
-                maxHeight: 26,
-                minWidth: (MediaQuery.of(context).size.width - 36) / 3,
-                maxWidth: (MediaQuery.of(context).size.width - 36) / 3,
+              height: 30,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
               ),
-              isSelected: _typeToggleState,
-              children: List.generate(
-                _typeToggleState.length,
-                (index) => TypeTab(
-                  _typeToggleState[index],
-                  _titleList[index],
-                  _selectableTypes[index].toColor(
-                    brightness: Theme.of(context).brightness,
+              padding: const EdgeInsets.symmetric(horizontal: Sizes.xxs * 0.5),
+              child: ToggleButtons(
+                direction: Axis.horizontal,
+                onPressed: (int index) {
+                  List<bool> newSelection = [];
+                  for (TransactionType type in _selectableTypes) {
+                    if (type == _selectableTypes[index]) {
+                      newSelection.add(true);
+                      ref
+                          .read(selectedTransactionTypeProvider.notifier)
+                          .setType(type);
+                    } else {
+                      newSelection.add(false);
+                    }
+                  }
+                  ref.invalidate(bankAccountTransferProvider);
+                  setState(() => _typeToggleState = newSelection);
+                },
+                borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
+                renderBorder: false,
+                selectedColor: Colors.transparent,
+                fillColor: Colors.transparent,
+                constraints: BoxConstraints(
+                  minHeight: 26,
+                  maxHeight: 26,
+                  minWidth: (MediaQuery.of(context).size.width - 36) / 3,
+                  maxWidth: (MediaQuery.of(context).size.width - 36) / 3,
+                ),
+                isSelected: _typeToggleState,
+                children: List.generate(
+                  _typeToggleState.length,
+                  (index) => TypeTab(
+                    _typeToggleState[index],
+                    _titleList[index],
+                    _selectableTypes[index].toColor(
+                      brightness: Theme.of(context).brightness,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
           if (selectedType == TransactionType.transfer)
             Padding(
               padding: const EdgeInsets.fromLTRB(

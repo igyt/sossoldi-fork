@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../ui/device.dart';
 import '../../../../ui/extensions.dart';
 import '../linear_progress_bar.dart';
+import '../../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../../ui/widgets/blur_widget.dart';
 import '../../../../ui/widgets/default_container.dart';
 import '../../../../providers/accounts_provider.dart';
 import '../../../../providers/currency_provider.dart';
@@ -17,12 +19,14 @@ class AccountsCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final accountList = ref.watch(activeAccountsProvider);
     final currencyState = ref.watch(currencyStateProvider);
+    final visual = context.dashboardTheme;
 
     return Column(
       children: [
-        const CardLabel(label: "Accounts"),
-        const SizedBox(height: Sizes.sm),
+        const CardLabel(label: "Accounts", subtitle: "Share of your balance"),
+        const SizedBox(height: Sizes.md),
         DefaultContainer(
+          margin: EdgeInsets.zero,
           child: accountList.when(
             data: (accounts) => ListView.separated(
               itemCount: accounts.length,
@@ -48,19 +52,31 @@ class AccountsCard extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          RichText(
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: account.name,
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
+                          Flexible(
+                            child: Text(
+                              account.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    color: visual.textPrimary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                             ),
                           ),
-                          Text(
-                            "${account.total?.toCurrency()}${currencyState.symbol}",
-                            style: Theme.of(context).textTheme.bodySmall,
+                          BlurWidget(
+                            sigma: 12,
+                            child: Text(
+                              "${account.total?.toCurrency()} ${currencyState.symbol}",
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    color: visual.textPrimary,
+                                    fontWeight: FontWeight.w800,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
+                            ),
                           ),
                         ],
                       ),

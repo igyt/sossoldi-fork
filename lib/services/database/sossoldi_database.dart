@@ -352,9 +352,9 @@ class SossoldiDatabase {
     final isoDate = DateTime.tryParse(text);
     if (isoDate != null) return isoDate;
 
-    final match = RegExp(r'^(\d{1,2})[./](\d{1,2})[./](\d{4})$').firstMatch(
-      text,
-    );
+    final match = RegExp(
+      r'^(\d{1,2})[./](\d{1,2})[./](\d{4})$',
+    ).firstMatch(text);
     if (match == null) return null;
     final day = int.parse(match.group(1)!);
     final month = int.parse(match.group(2)!);

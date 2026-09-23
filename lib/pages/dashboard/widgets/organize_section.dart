@@ -11,8 +11,10 @@ import '../../../providers/currency_provider.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
-import '../../../ui/widgets/default_container.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../ui/widgets/blur_widget.dart';
 import '../../../ui/widgets/rounded_icon.dart';
+import '../../../ui/widgets/tonal_glass_surface.dart';
 
 class OrganizeSection extends ConsumerWidget {
   const OrganizeSection({super.key});
@@ -20,69 +22,201 @@ class OrganizeSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final queue = ref.watch(organizeQueueProvider);
+    final visual = context.dashboardTheme;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            Sizes.lg,
-            Sizes.xxl,
-            Sizes.lg,
-            Sizes.sm,
-          ),
-          child: Row(
+    return TonalGlassSurface(
+      radius: 28,
+      color: visual.solidSurface,
+      borderColor: visual.glassBorder.withValues(alpha: 0.7),
+      padding: const EdgeInsets.all(Sizes.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
               Expanded(
-                child: Text(
-                  "Organize",
-                  style: Theme.of(context).textTheme.titleLarge,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: Sizes.sm),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Organize',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: visual.textPrimary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        'Give every payment a home',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: visual.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               queue.when(
                 data: (data) => data.total == 0
                     ? const SizedBox.shrink()
-                    : Text(
-                        "${data.total}",
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                      ),
+                    : _QueueBadge(count: data.total),
                 loading: () => const SizedBox.shrink(),
                 error: (_, _) => const SizedBox.shrink(),
               ),
             ],
           ),
-        ),
-        queue.when(
-          data: (data) {
-            if (data.items.isEmpty) {
-              return DefaultContainer(
-                child: Text(
-                  "Nothing left to classify",
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                ),
-              );
-            }
-            return _OrganizeTile(
-              key: ValueKey(data.items.first.id),
-              transaction: data.items.first,
-            );
-          },
-          loading: () => const Padding(
-            padding: EdgeInsets.all(Sizes.xl),
-            child: Center(child: CircularProgressIndicator()),
+          const SizedBox(height: Sizes.lg),
+          AnimatedSwitcher(
+            duration: reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 320),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.04, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            ),
+            child: queue.when(
+              data: (data) {
+                if (data.items.isEmpty) {
+                  return const _OrganizeEmpty(key: ValueKey('organize-empty'));
+                }
+                return _OrganizeTile(
+                  key: ValueKey(data.items.first.id),
+                  transaction: data.items.first,
+                );
+              },
+              loading: () =>
+                  const _OrganizeLoading(key: ValueKey('organize-loading')),
+              error: (_, _) => _OrganizeError(
+                key: const ValueKey('organize-error'),
+                onRetry: () => ref.invalidate(organizeQueueProvider),
+              ),
+            ),
           ),
-          error: (err, _) => Padding(
-            padding: const EdgeInsets.all(Sizes.lg),
-            child: Text('Error: $err'),
+        ],
+      ),
+    );
+  }
+}
+
+class _QueueBadge extends StatelessWidget {
+  const _QueueBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Sizes.sm,
+        vertical: Sizes.xs,
+      ),
+      decoration: BoxDecoration(
+        color: visual.accent.withValues(alpha: 0.13),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Text(
+        '$count left',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: visual.accent,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _OrganizeEmpty extends StatelessWidget {
+  const _OrganizeEmpty({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    return SizedBox(
+      height: 220,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: visual.positive.withValues(alpha: 0.13),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(
+                Icons.check_rounded,
+                color: visual.positive,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: Sizes.sm),
+            Text(
+              'Everything is organized',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: visual.textPrimary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: Sizes.xs),
+            Text(
+              'New uncategorized payments will appear here.',
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: visual.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OrganizeLoading extends StatelessWidget {
+  const _OrganizeLoading({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    return SizedBox(
+      height: 220,
+      child: Center(child: CircularProgressIndicator(color: visual.accent)),
+    );
+  }
+}
+
+class _OrganizeError extends StatelessWidget {
+  const _OrganizeError({required this.onRetry, super.key});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    return SizedBox(
+      height: 220,
+      child: Center(
+        child: TextButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh_rounded),
+          label: Text(
+            'Reload organizer',
+            style: TextStyle(color: visual.textSecondary),
           ),
         ),
-        const SizedBox(height: Sizes.xxl),
-      ],
+      ),
     );
   }
 }
@@ -149,6 +283,7 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
   @override
   Widget build(BuildContext context) {
     final currency = ref.watch(currencyStateProvider);
+    final visual = context.dashboardTheme;
     final signedAmount = transaction.type == TransactionType.expense
         ? "-${transaction.amount.toCurrency()}"
         : transaction.amount.toCurrency();
@@ -156,131 +291,194 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
         ? DateFormat("dd MMM").format(transaction.date)
         : transaction.note!;
     final canConfirm = !_busy && _category?.id != null;
+    final amountColor = transaction.type == TransactionType.expense
+        ? visual.negative
+        : visual.positive;
 
-    return DefaultContainer(
+    return TonalGlassSurface(
+      radius: 22,
+      color: visual.raisedSurface,
+      borderColor: visual.glassBorder,
       padding: const EdgeInsets.all(Sizes.md),
-      child: Opacity(
-        opacity: _busy ? 0.5 : 1,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                      ),
-                      Text(
-                        "${DateFormat("dd MMM yyyy").format(transaction.date)}"
-                        "${transaction.bankAccountName != null ? " · ${transaction.bankAccountName}" : ""}",
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  "$signedAmount${currency.symbol}",
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: transaction.type.toColor(
-                      brightness: Theme.of(context).brightness,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: Sizes.md),
-            SizedBox(
-              height: 56,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+      boxShadow: const [],
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 180),
+        opacity: _busy ? 0.56 : 1,
+        child: IgnorePointer(
+          ignoring: _busy,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    flex: 3,
-                    child: FilledButton(
-                      onPressed: _busy ? null : _openSheet,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Sizes.md,
-                        ),
-                        backgroundColor: grey3,
-                        foregroundColor: blue1,
-                        disabledBackgroundColor: grey3,
-                        disabledForegroundColor: blue1,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.horizontal(
-                            left: Radius.circular(Sizes.borderRadius),
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            alignment: Alignment.center,
-                            decoration: const BoxDecoration(
-                              color: white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: _category == null
-                                ? const SizedBox(width: 18, height: 18)
-                                : Icon(
-                                    iconList[_category!.symbol],
-                                    color: categoryColorListTheme[_category!
-                                        .color],
-                                    size: 20,
-                                  ),
-                          ),
-                          const SizedBox(width: Sizes.sm),
-                          Expanded(
-                            child: Text(
-                              _category?.name ?? "--",
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                          ),
-                        ],
-                      ),
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: amountColor.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Icon(
+                      transaction.type == TransactionType.expense
+                          ? Icons.north_east_rounded
+                          : Icons.south_west_rounded,
+                      color: amountColor,
+                      size: 21,
                     ),
                   ),
-                  const SizedBox(width: 2),
+                  const SizedBox(width: Sizes.sm),
                   Expanded(
-                    child: FilledButton(
-                      onPressed: canConfirm ? _confirm : null,
-                      style: FilledButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        backgroundColor: green,
-                        foregroundColor: white,
-                        disabledBackgroundColor: green,
-                        disabledForegroundColor: white,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.horizontal(
-                            right: Radius.circular(Sizes.borderRadius),
-                          ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: visual.textPrimary,
+                                fontWeight: FontWeight.w800,
+                              ),
                         ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "${DateFormat("dd MMM yyyy").format(transaction.date)}"
+                          "${transaction.bankAccountName != null ? " · ${transaction.bankAccountName}" : ""}",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                color: visual.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: Sizes.sm),
+                  BlurWidget(
+                    sigma: 16,
+                    child: Text(
+                      "$signedAmount ${currency.symbol}",
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: amountColor,
+                        fontWeight: FontWeight.w800,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
-                      child: const Icon(Icons.check_rounded, size: 30),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: Sizes.xl),
+              Text(
+                'CATEGORY',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: visual.textSecondary,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.7,
+                ),
+              ),
+              const SizedBox(height: Sizes.sm),
+              SizedBox(
+                height: 58,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: FilledButton(
+                        onPressed: _openSheet,
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: Sizes.sm,
+                          ),
+                          backgroundColor: visual.solidSurface,
+                          foregroundColor: visual.textPrimary,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.horizontal(
+                              left: Radius.circular(18),
+                            ),
+                          ),
+                          side: BorderSide(color: visual.glassBorder),
+                          elevation: 0,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              alignment: Alignment.center,
+                              decoration: const BoxDecoration(
+                                color: white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: _category == null
+                                  ? const Icon(
+                                      Icons.category_outlined,
+                                      color: grey1,
+                                      size: 19,
+                                    )
+                                  : Icon(
+                                      iconList[_category!.symbol],
+                                      color:
+                                          categoryColorListTheme[_category!
+                                              .color],
+                                      size: 20,
+                                    ),
+                            ),
+                            const SizedBox(width: Sizes.sm),
+                            Expanded(
+                              child: Text(
+                                _category?.name ?? "--",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      color: visual.textPrimary,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    SizedBox(
+                      width: 66,
+                      child: FilledButton(
+                        onPressed: canConfirm ? _confirm : null,
+                        style: FilledButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          backgroundColor: visual.positive,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: visual.positive,
+                          disabledForegroundColor: Colors.white70,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.horizontal(
+                              right: Radius.circular(18),
+                            ),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _busy
+                            ? const SizedBox.square(
+                                dimension: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.check_rounded, size: 29),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -442,8 +640,7 @@ class _OrganizeCategorySheetState extends ConsumerState<OrganizeCategorySheet> {
                                     : null,
                               ),
                               AnimatedCrossFade(
-                                crossFadeState:
-                                    _pendingParentId == category.id
+                                crossFadeState: _pendingParentId == category.id
                                     ? CrossFadeState.showSecond
                                     : CrossFadeState.showFirst,
                                 duration: const Duration(milliseconds: 150),
@@ -458,13 +655,14 @@ class _OrganizeCategorySheetState extends ConsumerState<OrganizeCategorySheet> {
                                           (subcategory) => ListTile(
                                             contentPadding:
                                                 const EdgeInsets.only(
-                                              left: Sizes.xxl,
-                                              right: Sizes.lg,
-                                            ),
+                                                  left: Sizes.xxl,
+                                                  right: Sizes.lg,
+                                                ),
                                             onTap: () =>
                                                 widget.onSelected(subcategory),
                                             leading: RoundedIcon(
-                                              icon: iconList[subcategory.symbol],
+                                              icon:
+                                                  iconList[subcategory.symbol],
                                               backgroundColor:
                                                   categoryColorListTheme[subcategory
                                                       .color],

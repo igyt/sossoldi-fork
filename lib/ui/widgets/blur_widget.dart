@@ -5,28 +5,90 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/settings_provider.dart';
 
-class BlurWidget extends ConsumerWidget {
-  const BlurWidget({super.key, this.ignore = false, required this.child});
+class BlurWidget extends ConsumerStatefulWidget {
+  const BlurWidget({
+    required this.child,
+    this.ignore = false,
+    this.replacement,
+    this.sigma = 14,
+    super.key,
+  });
 
   final bool ignore;
-
   final Widget child;
+  final Widget? replacement;
+  final double sigma;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (ignore) return child;
+  ConsumerState<BlurWidget> createState() => _BlurWidgetState();
+}
 
-    final isVisible = ref.watch(visibilityAmountProvider);
-    if (isVisible) return child;
+class _BlurWidgetState extends ConsumerState<BlurWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
 
-    return ClipRRect(
-      child: ImageFiltered(
-        imageFilter: ImageFilter.blur(sigmaX: 4.5, sigmaY: 4.5),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-          child: child,
-        ),
-      ),
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+      value: ref.read(visibilityAmountProvider) ? 0 : 1,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.ignore) return widget.child;
+
+    ref.listen<bool>(visibilityAmountProvider, (_, visible) {
+      final target = visible ? 0.0 : 1.0;
+      if (MediaQuery.disableAnimationsOf(context)) {
+        _controller.value = target;
+      } else {
+        _controller.animateTo(target, curve: Curves.easeInOutCubic);
+      }
+    });
+
+    if (widget.replacement != null && !ref.watch(visibilityAmountProvider)) {
+      return Semantics(
+        label: 'Financial value hidden',
+        child: ExcludeSemantics(child: widget.replacement!),
+      );
+    }
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final t = _controller.value;
+        final hidden = t > 0.5;
+        Widget content = widget.child;
+        if (t > 0) {
+          content = ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(
+                sigmaX: widget.sigma * t,
+                sigmaY: widget.sigma * t,
+                tileMode: TileMode.decal,
+              ),
+              child: Opacity(opacity: 1 - (0.18 * t), child: widget.child),
+            ),
+          );
+        }
+
+        return Semantics(
+          label: hidden ? 'Financial value hidden' : null,
+          excludeSemantics: hidden,
+          child: IgnorePointer(ignoring: hidden, child: content),
+        );
+      },
     );
   }
 }

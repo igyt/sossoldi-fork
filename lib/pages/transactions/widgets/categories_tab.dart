@@ -21,8 +21,14 @@ class CategoriesTab extends ConsumerWidget {
     final transactionType = ref.watch(selectedTransactionTypeProvider);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: Sizes.xl),
+      padding: EdgeInsets.only(
+        top: Sizes.lg,
+        bottom: MediaQuery.paddingOf(context).bottom + Sizes.xl,
+      ),
       child: DefaultContainer(
+        margin: EdgeInsets.symmetric(
+          horizontal: Sizes.responsiveInsets(context),
+        ),
         child: Column(
           spacing: Sizes.lg,
           children: [

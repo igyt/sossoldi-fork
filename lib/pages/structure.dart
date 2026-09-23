@@ -6,8 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/settings_provider.dart';
 import '../providers/transactions_provider.dart';
 import '../ui/device.dart';
-import 'graphs/graphs_page.dart';
+import '../ui/theme/dashboard_visual_theme.dart';
+import '../ui/widgets/app_navigation_bar.dart';
+import '../ui/widgets/atmospheric_background.dart';
+import '../ui/widgets/tonal_glass_surface.dart';
 import 'dashboard/dashboard_page.dart';
+import 'graphs/graphs_page.dart';
 import 'planning/planning_page.dart';
 import 'transactions/transactions_page.dart';
 
@@ -19,123 +23,257 @@ class Structure extends ConsumerStatefulWidget {
 }
 
 class _StructureState extends ConsumerState<Structure> {
-  // We could add this List in the app's state, so it isn't intialized every time.
-  final List<String> _pagesTitle = [
-    "Dashboard",
-    "Transactions",
-    "",
-    "Planning",
-    "Graphs",
-  ];
-  final List<Widget?> _pages = [
-    const DashboardPage(),
-    const TransactionsPage(),
-    null,
-    const PlanningPage(),
-    const GraphsPage(),
-  ];
+  AppDestination _selected = AppDestination.dashboard;
 
-  int selectedIndex = 0;
+  Widget get _selectedPage => switch (_selected) {
+    AppDestination.dashboard => const DashboardPage(),
+    AppDestination.transactions => const TransactionsPage(),
+    AppDestination.planning => const PlanningPage(),
+    AppDestination.graphs => const GraphsPage(),
+  };
+
+  String get _selectedTitle => switch (_selected) {
+    AppDestination.dashboard => 'Dashboard',
+    AppDestination.transactions => 'Transactions',
+    AppDestination.planning => 'Planning',
+    AppDestination.graphs => 'Graphs',
+  };
 
   @override
   Widget build(BuildContext context) {
     final isVisible = ref.watch(visibilityAmountProvider);
+    final isDashboard = _selected == AppDestination.dashboard;
 
-    return Scaffold(
-      // Prevent the fab moving up when the keyboard is opened
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        backgroundColor: selectedIndex == 0
-            ? Theme.of(context).colorScheme.tertiary
-            : null,
-        title: switch (selectedIndex) {
-          0 => null,
-          _ => Text(_pagesTitle.elementAt(selectedIndex)),
-        },
-        leading: Padding(
-          padding: const EdgeInsets.only(left: Sizes.lg),
-          child: FilledButton(
-            onPressed: () => Navigator.of(context).pushNamed('/search'),
-            style: FilledButton.styleFrom(shape: const CircleBorder()),
-            child: const Icon(Icons.search),
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+
+    return AtmosphericBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: false,
+        extendBody: true,
+        extendBodyBehindAppBar: isDashboard,
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(_topBarHeight),
+          child: _TopControls(
+            title: isDashboard ? null : _selectedTitle,
+            isVisible: isVisible,
+            onSearch: () => Navigator.of(context).pushNamed('/search'),
+            onVisibility: () => ref
+                .read(visibilityAmountProvider.notifier)
+                .setVisibility(!isVisible),
+            onSettings: () => Navigator.of(context).pushNamed('/settings'),
           ),
         ),
-        actions: [
-          switch (selectedIndex) {
-            0 => FilledButton(
-              onPressed: () async {
-                await ref
-                    .read(visibilityAmountProvider.notifier)
-                    .setVisibility(!isVisible);
-              },
-              style: FilledButton.styleFrom(shape: const CircleBorder()),
-              child: Icon(isVisible ? Icons.visibility : Icons.visibility_off),
+        body: AnimatedSwitcher(
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 320),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 0.012),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
             ),
-            _ => const SizedBox.shrink(),
+          ),
+          child: KeyedSubtree(
+            key: ValueKey(_selected),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1160),
+                child: _selectedPage,
+              ),
+            ),
+          ),
+        ),
+        bottomNavigationBar: AppNavigationBar(
+          selected: _selected,
+          onSelect: (destination) {
+            if (destination != _selected) {
+              setState(() => _selected = destination);
+            }
           },
-          FilledButton(
-            onPressed: () => Navigator.of(context).pushNamed('/settings'),
-            style: FilledButton.styleFrom(shape: const CircleBorder()),
-            child: const Icon(Icons.settings),
-          ),
-          const SizedBox.square(dimension: Sizes.xs),
-        ],
-      ),
-      body: Center(child: _pages[selectedIndex]),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedFontSize: 8,
-        unselectedFontSize: 8,
-        currentIndex: selectedIndex,
-        onTap: (index) =>
-            index != 2 ? setState(() => selectedIndex = index) : null,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(selectedIndex == 0 ? Icons.home : Icons.home_outlined),
-            label: "DASHBOARD",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(
-              selectedIndex == 1
-                  ? Icons.swap_horizontal_circle
-                  : Icons.swap_horizontal_circle_outlined,
-            ),
-            label: "TRANSACTIONS",
-          ),
-          const BottomNavigationBarItem(icon: Text(""), label: ""),
-          BottomNavigationBarItem(
-            icon: Icon(
-              selectedIndex == 3
-                  ? Icons.calendar_today
-                  : Icons.calendar_today_outlined,
-            ),
-            label: "PLANNING",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(
-              selectedIndex == 4
-                  ? Icons.data_exploration
-                  : Icons.data_exploration_outlined,
-            ),
-            label: "GRAPHS",
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        elevation: 4,
-        highlightElevation: 0,
-        child: Icon(
-          Icons.add_rounded,
-          size: 55,
-          color: Theme.of(context).colorScheme.onPrimary,
+          onAdd: () {
+            ref.read(transactionsProvider.notifier).reset();
+            Navigator.of(context).pushNamed('/add-page');
+          },
         ),
-        onPressed: () {
-          ref.read(transactionsProvider.notifier).reset();
-          Navigator.of(context).pushNamed("/add-page");
-        },
       ),
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.miniCenterDocked,
+    );
+  }
+}
+
+const double _topBarHeight = 60;
+
+class _TopControls extends StatelessWidget {
+  const _TopControls({
+    required this.title,
+    required this.isVisible,
+    required this.onSearch,
+    required this.onVisibility,
+    required this.onSettings,
+  });
+
+  /// Page title; the dashboard (null) shows the search capsule instead.
+  final String? title;
+  final bool isVisible;
+  final VoidCallback onSearch;
+  final VoidCallback onVisibility;
+  final VoidCallback onSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    return SafeArea(
+      bottom: false,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1160),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              Sizes.responsiveInsets(context),
+              Sizes.sm,
+              Sizes.responsiveInsets(context),
+              0,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 260),
+                    layoutBuilder: (current, previous) => Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [...previous, ?current],
+                    ),
+                    child: title == null
+                        ? _searchCapsule(context)
+                        : Padding(
+                            key: ValueKey(title),
+                            padding: const EdgeInsets.only(left: Sizes.sm),
+                            child: Text(
+                              title!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(
+                                    color: visual.textPrimary,
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.9,
+                                  ),
+                            ),
+                          ),
+                  ),
+                ),
+                if (title != null) ...[
+                  const SizedBox(width: Sizes.sm),
+                  _DashboardAction(
+                    label: 'Search transactions',
+                    icon: Icons.search_rounded,
+                    onTap: onSearch,
+                  ),
+                ],
+                const SizedBox(width: Sizes.sm),
+                _DashboardAction(
+                  label: isVisible ? 'Hide amounts' : 'Show amounts',
+                  icon: isVisible
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  onTap: onVisibility,
+                ),
+                const SizedBox(width: Sizes.sm),
+                _DashboardAction(
+                  label: 'Settings',
+                  icon: Icons.tune_rounded,
+                  onTap: onSettings,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _searchCapsule(BuildContext context) {
+    final visual = context.dashboardTheme;
+    return TonalGlassSurface(
+      key: const ValueKey('search-capsule'),
+      onTap: onSearch,
+      semanticLabel: 'Search transactions',
+      radius: 26,
+      blurSigma: 18,
+      color: visual.glassFill,
+      padding: const EdgeInsets.symmetric(
+        horizontal: Sizes.lg,
+        vertical: Sizes.md,
+      ),
+      boxShadow: const [],
+      child: Row(
+        children: [
+          Icon(Icons.search_rounded, color: visual.textPrimary, size: 25),
+          const SizedBox(width: Sizes.md),
+          Expanded(
+            child: Text(
+              'Search transactions',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: visual.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardAction extends StatelessWidget {
+  const _DashboardAction({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    return SizedBox.square(
+      dimension: 52,
+      child: TonalGlassSurface(
+        onTap: onTap,
+        semanticLabel: label,
+        radius: 26,
+        blurSigma: 18,
+        color: visual.glassFill,
+        boxShadow: const [],
+        child: Tooltip(
+          message: label,
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: Icon(
+                icon,
+                key: ValueKey(icon),
+                color: visual.textPrimary,
+                size: 24,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

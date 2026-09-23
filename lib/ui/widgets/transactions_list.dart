@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../constants/constants.dart';
-import '../../constants/style.dart';
 import '../../model/transaction.dart';
 import '../../providers/currency_provider.dart';
 import '../../providers/transactions_provider.dart';
 import '../device.dart';
 import '../extensions.dart';
+import '../theme/dashboard_visual_theme.dart';
 import 'blur_widget.dart';
 import 'default_container.dart';
 import 'rounded_icon.dart';
@@ -94,21 +94,21 @@ class _TransactionsListState extends State<TransactionsList> {
                 ),
                 Container(
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                    color: context.dashboardTheme.solidSurface,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: context.dashboardTheme.hairline),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                    borderRadius: BorderRadius.circular(18),
                     child: ListView.separated(
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       itemCount: dateTransactions.length,
                       separatorBuilder: (_, _) => Divider(
-                        indent: 12,
-                        endIndent: 12,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.4),
+                        height: 1,
+                        indent: 64,
+                        endIndent: Sizes.md,
+                        color: context.dashboardTheme.hairline,
                       ),
                       itemBuilder: (context, index) {
                         final transaction = dateTransactions[index];
@@ -156,7 +156,9 @@ class TransactionTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currencyState = ref.watch(currencyStateProvider);
+    final visual = context.dashboardTheme;
     return Material(
+      color: Colors.transparent,
       child: ListTile(
         visualDensity: VisualDensity.compact,
         dense: true,
@@ -195,21 +197,21 @@ class TransactionTile extends ConsumerWidget {
               : transaction.note!,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleMedium!.copyWith(
-            color: Theme.of(context).colorScheme.primary,
+            color: visual.textPrimary,
+            fontWeight: FontWeight.w700,
           ),
         ),
         subtitle: Text(
           switch (transaction.type) {
             TransactionType.transfer => "",
             TransactionType.adjustment => "Adjustment",
-            TransactionType.income ||
-            TransactionType.expense =>
+            TransactionType.income || TransactionType.expense =>
               transaction.categoryName ?? "Uncategorized",
           },
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelMedium!.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium!.copyWith(color: visual.textSecondary),
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -226,8 +228,7 @@ class TransactionTile extends ConsumerWidget {
                         "-${transaction.amount.toCurrency()}",
                       TransactionType.adjustment =>
                         transaction.amount.toCurrency(),
-                      TransactionType.income ||
-                      TransactionType.transfer =>
+                      TransactionType.income || TransactionType.transfer =>
                         transaction.amount.toCurrency(),
                     },
                     overflow: TextOverflow.ellipsis,
@@ -235,6 +236,9 @@ class TransactionTile extends ConsumerWidget {
                       color: transaction.type.toColor(
                         brightness: Theme.of(context).brightness,
                       ),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                   Text(
@@ -244,6 +248,8 @@ class TransactionTile extends ConsumerWidget {
                       color: transaction.type.toColor(
                         brightness: Theme.of(context).brightness,
                       ),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -253,9 +259,9 @@ class TransactionTile extends ConsumerWidget {
               transaction.type == TransactionType.transfer
                   ? "${transaction.bankAccountName ?? ''}→${transaction.bankAccountTransferName ?? ''}"
                   : transaction.bankAccountName ?? '',
-              style: Theme.of(context).textTheme.labelMedium!.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium!.copyWith(color: visual.textSecondary),
             ),
           ],
         ),
@@ -279,15 +285,19 @@ class TransactionTitle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currencyState = ref.watch(currencyStateProvider);
-    final color = total < 0 ? red : (total > 0 ? green : blue3);
+    final visual = context.dashboardTheme;
+    final color = total < 0
+        ? visual.negative
+        : (total > 0 ? visual.positive : visual.textSecondary);
     return Padding(
-      padding: const EdgeInsets.only(bottom: Sizes.md),
+      padding: const EdgeInsets.fromLTRB(Sizes.xs, 0, Sizes.xs, Sizes.sm),
       child: Row(
         children: [
           Text(
             date.formatEDMY(),
             style: Theme.of(context).textTheme.bodySmall!.copyWith(
-              color: Theme.of(context).colorScheme.primary,
+              color: visual.textSecondary,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const Spacer(),
@@ -295,9 +305,11 @@ class TransactionTitle extends ConsumerWidget {
             ignore: ignoreBlur,
             child: Text(
               total.toCurrency(),
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge!.copyWith(color: color),
+              style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                color: color,
+                fontWeight: FontWeight.w800,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
           ),
           BlurWidget(

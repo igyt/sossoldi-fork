@@ -19,6 +19,7 @@ class AppThemeState extends _$AppThemeState {
   ThemeState build() {
     final prefs = ref.read(sharedPrefProvider);
     final isDark = prefs.getBool(_themeKey) ?? false;
+    updateColorsBasedOnTheme(isDark);
     return ThemeState(isDark);
   }
 

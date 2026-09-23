@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../constants/constants.dart';
 import '../../../ui/extensions.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../ui/widgets/blur_widget.dart';
+import '../../../ui/widgets/default_container.dart';
 import '../../../ui/widgets/rounded_icon.dart';
 import '../../../model/recurring_transaction.dart';
-import '../../../providers/theme_provider.dart';
 import '../../../ui/device.dart';
 import 'older_recurring_payments.dart';
 import '../../../providers/accounts_provider.dart';
 import '../../../providers/currency_provider.dart';
 
-import '../../../constants/style.dart';
 import '../../../providers/categories_provider.dart';
 
 /// This class shows account summaries in dashboard
@@ -34,7 +35,7 @@ class RecurringPaymentCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(categoriesProvider).value;
     final accounts = ref.watch(accountsProvider).value;
-    final isDarkMode = ref.watch(appThemeStateProvider).isDarkModeEnabled;
+    final visual = context.dashboardTheme;
     final currencyState = ref.watch(currencyStateProvider);
 
     var category = categories?.firstWhereOrNull(
@@ -42,20 +43,21 @@ class RecurringPaymentCard extends ConsumerWidget {
     );
 
     return category != null
-        ? Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(Sizes.borderRadius),
-              color: Theme.of(context).colorScheme.primaryContainer,
-              boxShadow: [defaultShadow],
-            ),
+        ? DefaultContainer(
+            margin: EdgeInsets.zero,
+            padding: EdgeInsets.zero,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Sizes.sm,
-                vertical: Sizes.md,
-              ),
+              padding: const EdgeInsets.all(Sizes.lg),
               decoration: BoxDecoration(
-                color: categoryColorList[category.color].withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    categoryColorList[category.color].withValues(alpha: 0.16),
+                    categoryColorList[category.color].withValues(alpha: 0.02),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(DefaultContainer.radius),
               ),
               child: Column(
                 spacing: 16,
@@ -83,7 +85,13 @@ class RecurringPaymentCard extends ConsumerWidget {
                             ),
                             Text(
                               transaction.note,
-                              style: Theme.of(context).textTheme.titleLarge,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: visual.textPrimary,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                             ),
                             Text(
                               category.name.toUpperCase(),
@@ -109,10 +117,21 @@ class RecurringPaymentCard extends ConsumerWidget {
                                     .toColor(
                                       brightness: Theme.of(context).brightness,
                                     );
-                                return Text(
-                                  "${transaction.type.prefix}${transaction.amount}${currencyState.symbol}",
-                                  style: Theme.of(context).textTheme.bodyLarge
-                                      ?.copyWith(color: amountColor),
+                                return BlurWidget(
+                                  sigma: 12,
+                                  child: Text(
+                                    "${transaction.type.prefix}${transaction.amount} ${currencyState.symbol}",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          color: amountColor,
+                                          fontWeight: FontWeight.w800,
+                                          fontFeatures: const [
+                                            FontFeature.tabularFigures(),
+                                          ],
+                                        ),
+                                  ),
                                 );
                               },
                             ),
@@ -165,20 +184,15 @@ class RecurringPaymentCard extends ConsumerWidget {
                               ),
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primaryContainer,
-                              foregroundColor: isDarkMode
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.secondary,
-                              iconColor: isDarkMode
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.secondary,
-                              overlayColor: Theme.of(
-                                context,
-                              ).colorScheme.primary,
+                              elevation: 0,
+                              shape: const StadiumBorder(),
+                              backgroundColor: visual.textPrimary.withValues(
+                                alpha: 0.06,
+                              ),
+                              foregroundColor: visual.textPrimary,
+                              iconColor: visual.textPrimary,
                               padding: const EdgeInsets.symmetric(
-                                horizontal: Sizes.sm,
+                                horizontal: Sizes.md,
                                 vertical: Sizes.xs,
                               ),
                             ),
@@ -197,7 +211,8 @@ class RecurringPaymentCard extends ConsumerWidget {
                             alignment: Alignment.centerRight,
                             child: Text(
                               "Until ${transaction.toDate?.formatEDMY()}",
-                              style: const TextStyle(fontSize: 8),
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(color: visual.textSecondary),
                             ),
                           ),
                         ),

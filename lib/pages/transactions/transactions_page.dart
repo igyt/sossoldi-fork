@@ -27,7 +27,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage>
   late TabController _tabController;
   late ScrollController _scrollController;
 
-  final double headerMaxHeight = 140.0;
+  final double headerMaxHeight = 136.0;
   final double headerMinHeight = 56.0;
 
   @override

@@ -8,6 +8,8 @@ import '../../../providers/transactions_provider.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
 import '../../../ui/formatters/formatted_date_range.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../ui/widgets/blur_widget.dart';
 
 enum MonthSelectorType { simple, advanced } //advanced = with amount
 
@@ -24,7 +26,8 @@ class MonthSelector extends ConsumerWidget {
     final endDate = ref.watch(filterDateEndProvider);
     final currencyState = ref.watch(currencyStateProvider);
 
-    double currentHeight = type == MonthSelectorType.advanced ? 60 : 30;
+    final visual = context.dashboardTheme;
+    double currentHeight = type == MonthSelectorType.advanced ? 60 : 44;
 
     return GestureDetector(
       onTap: () async {
@@ -55,9 +58,10 @@ class MonthSelector extends ConsumerWidget {
       child: Container(
         clipBehavior: Clip.antiAlias, // force rounded corners on children
         height: currentHeight,
+        padding: const EdgeInsets.all(Sizes.xs),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.tertiary,
-          borderRadius: BorderRadius.circular(Sizes.borderRadius),
+          color: visual.textPrimary.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(currentHeight / 2),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -85,12 +89,24 @@ class MonthSelector extends ConsumerWidget {
                     .setValue(newStartDate.month - 1);
               },
               child: Container(
-                height: currentHeight,
-                width: height,
-                color: Theme.of(context).colorScheme.primary,
+                width: currentHeight - Sizes.sm,
+                height: currentHeight - Sizes.sm,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: visual.raisedSurface,
+                  boxShadow: [
+                    BoxShadow(
+                      color: visual.shadow.withValues(
+                        alpha: visual.shadow.a * 0.4,
+                      ),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
                 child: Icon(
-                  Icons.chevron_left,
-                  color: Theme.of(context).colorScheme.primaryContainer,
+                  Icons.chevron_left_rounded,
+                  color: visual.textPrimary,
                 ),
               ),
             ),
@@ -99,23 +115,29 @@ class MonthSelector extends ConsumerWidget {
               children: [
                 Text(
                   getFormattedDateRange(startDate, endDate),
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: visual.textPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 if (type == MonthSelectorType.advanced)
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: totalAmount.toCurrency(),
-                          style: Theme.of(context).textTheme.bodyLarge!
-                              .copyWith(color: totalAmount.toColor()),
-                        ),
-                        TextSpan(
-                          text: currencyState.symbol,
-                          style: Theme.of(context).textTheme.labelLarge!
-                              .copyWith(color: totalAmount.toColor()),
-                        ),
-                      ],
+                  BlurWidget(
+                    sigma: 12,
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: totalAmount.toCurrency(),
+                            style: Theme.of(context).textTheme.bodyLarge!
+                                .copyWith(color: totalAmount.toColor()),
+                          ),
+                          TextSpan(
+                            text: currencyState.symbol,
+                            style: Theme.of(context).textTheme.labelLarge!
+                                .copyWith(color: totalAmount.toColor()),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               ],
@@ -143,12 +165,24 @@ class MonthSelector extends ConsumerWidget {
                     .setValue(newStartDate.month - 1);
               },
               child: Container(
-                height: currentHeight,
-                width: height,
-                color: Theme.of(context).colorScheme.primary,
+                width: currentHeight - Sizes.sm,
+                height: currentHeight - Sizes.sm,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: visual.raisedSurface,
+                  boxShadow: [
+                    BoxShadow(
+                      color: visual.shadow.withValues(
+                        alpha: visual.shadow.a * 0.4,
+                      ),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
                 child: Icon(
-                  Icons.chevron_right,
-                  color: Theme.of(context).colorScheme.primaryContainer,
+                  Icons.chevron_right_rounded,
+                  color: visual.textPrimary,
                 ),
               ),
             ),

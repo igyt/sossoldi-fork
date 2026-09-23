@@ -2,10 +2,11 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../constants/style.dart';
 import '../../../model/category_transaction.dart';
 import '../../../providers/categories_provider.dart';
 import '../../../ui/extensions.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../ui/widgets/accent_button.dart';
 import '../../../ui/widgets/default_container.dart';
 import '../../../providers/budgets_provider.dart';
 import '../../../providers/currency_provider.dart';
@@ -25,6 +26,11 @@ class BudgetCard extends ConsumerWidget {
     final transactionsAsync = ref.watch(monthlyTransactionsProvider);
     final categoriesAsync = ref.watch(allParentCategoriesProvider);
     final currencyState = ref.watch(currencyStateProvider);
+    final visual = context.dashboardTheme;
+    final sectionStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+      color: visual.textPrimary,
+      fontWeight: FontWeight.w800,
+    );
 
     return DefaultContainer(
       margin: EdgeInsets.zero,
@@ -38,18 +44,12 @@ class BudgetCard extends ConsumerWidget {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              "Composition",
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
+                            Text("Composition", style: sectionStyle),
                             BudgetPieChart(
                               budgets: budgets,
                               categories: categories,
                             ),
-                            Text(
-                              "Progress",
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
+                            Text("Progress", style: sectionStyle),
                             const SizedBox(height: Sizes.sm),
                             ListView.separated(
                               shrinkWrap: true,
@@ -145,61 +145,30 @@ class BudgetCard extends ConsumerWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: Sizes.lg),
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(Sizes.borderRadius),
-                        boxShadow: [defaultShadow],
-                      ),
-                      child: TextButton.icon(
-                        icon: Icon(
-                          Icons.add_circle,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimaryContainer,
-                          size: Sizes.xl,
-                        ),
-                        label: Text(
-                          "Create budget",
-                          style: Theme.of(context).textTheme.titleLarge!.apply(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onPrimaryContainer,
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primaryContainer,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: Sizes.md,
-                          ),
-                        ),
-                        onPressed: () {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            clipBehavior: Clip.antiAliasWithSaveLayer,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(
-                                  Sizes.borderRadiusLarge,
-                                ),
-                                topRight: Radius.circular(
-                                  Sizes.borderRadiusLarge,
-                                ),
+                    AccentButton(
+                      label: "Create budget",
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          clipBehavior: Clip.antiAliasWithSaveLayer,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(Sizes.borderRadiusLarge),
+                              topRight: Radius.circular(
+                                Sizes.borderRadiusLarge,
                               ),
                             ),
-                            elevation: 10,
-                            builder: (BuildContext context) {
-                              return const FractionallySizedBox(
-                                heightFactor: 0.9,
-                                child: ManageBudgetPage(),
-                              );
-                            },
-                          );
-                        },
-                      ),
+                          ),
+                          elevation: 10,
+                          builder: (BuildContext context) {
+                            return const FractionallySizedBox(
+                              heightFactor: 0.9,
+                              child: ManageBudgetPage(),
+                            );
+                          },
+                        );
+                      },
                     ),
                   ],
                 );

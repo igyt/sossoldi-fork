@@ -107,7 +107,8 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
                         itemBuilder: (context, i) {
                           CategoryTransaction category = categories[i];
                           return GestureDetector(
-                            onTap: () => _selectParentOrCommit(context, category),
+                            onTap: () =>
+                                _selectParentOrCommit(context, category),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: Sizes.lg,

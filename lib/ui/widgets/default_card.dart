@@ -11,22 +11,17 @@ class DefaultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final borderRadius = BorderRadius.circular(DefaultContainer.radius);
     return DefaultContainer(
       padding: EdgeInsets.zero,
       child: Material(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(Sizes.borderRadius),
+        color: Colors.transparent,
+        borderRadius: borderRadius,
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
-          borderRadius: BorderRadius.circular(Sizes.borderRadius),
+          borderRadius: borderRadius,
           onTap: onTap,
-          child: Ink(
-            padding: const EdgeInsets.all(Sizes.md),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(Sizes.borderRadius),
-            ),
-            child: child,
-          ),
+          child: Padding(padding: const EdgeInsets.all(Sizes.md), child: child),
         ),
       ),
     );

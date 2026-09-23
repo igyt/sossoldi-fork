@@ -12,23 +12,25 @@ class ListTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncTransactions = ref.watch(transactionsProvider);
 
-    return Container(
-      child: asyncTransactions.when(
-        data: (transactions) {
-          return TransactionsList(
-            margin: const EdgeInsets.all(Sizes.lg),
+    return asyncTransactions.when(
+      data: (transactions) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.only(
+            top: Sizes.lg,
+            bottom: MediaQuery.paddingOf(context).bottom + Sizes.xl,
+          ),
+          child: TransactionsList(
+            margin: EdgeInsets.symmetric(
+              horizontal: Sizes.responsiveInsets(context),
+            ),
             transactions: transactions,
-          );
-        },
-        loading: () {
-          return Container(
-            color: Theme.of(context).colorScheme.primaryContainer,
-          );
-        },
-        error: (error, stackTrace) {
-          return Center(child: Text(stackTrace.toString()));
-        },
-      ),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (error, stackTrace) {
+        return Center(child: Text(stackTrace.toString()));
+      },
     );
   }
 }
