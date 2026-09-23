@@ -1,9 +1,13 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../theme/dashboard_visual_theme.dart';
 
+enum GlassTone { panel, hero, chrome }
+
+/// Frosted panel painted with a translucent fill and a top highlight.
+///
+/// The highlight is a gradient, not a live blur, so scrolling does not
+/// re-sample the backdrop on every frame.
 class TonalGlassSurface extends StatelessWidget {
   const TonalGlassSurface({
     required this.child,
@@ -11,7 +15,7 @@ class TonalGlassSurface extends StatelessWidget {
     this.padding,
     this.margin,
     this.radius = 24,
-    this.blurSigma = 0,
+    this.tone = GlassTone.panel,
     this.color,
     this.gradient,
     this.borderColor,
@@ -26,7 +30,7 @@ class TonalGlassSurface extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final double radius;
-  final double blurSigma;
+  final GlassTone tone;
   final Color? color;
   final Gradient? gradient;
   final Color? borderColor;
@@ -39,26 +43,49 @@ class TonalGlassSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visual = context.dashboardTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final borderRadius = BorderRadius.circular(radius);
+    final fill = gradient ?? _fill(visual, isDark);
     final content = DecoratedBox(
       decoration: BoxDecoration(
-        color: gradient == null ? color ?? visual.glassFill : null,
-        gradient: gradient,
+        color: fill == null ? _baseColor(visual, isDark) : null,
+        gradient: fill,
         borderRadius: borderRadius,
-        border: Border.all(color: borderColor ?? visual.glassBorder),
+        border: Border.all(color: borderColor ?? _border(visual, isDark)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: onTap == null
-            ? Padding(padding: padding ?? EdgeInsets.zero, child: child)
-            : InkWell(
-                onTap: onTap,
-                borderRadius: borderRadius,
-                child: Padding(
-                  padding: padding ?? EdgeInsets.zero,
-                  child: child,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withValues(alpha: _sheen(isDark)),
+                      Colors.transparent,
+                    ],
+                    stops: const [0, 0.55],
+                  ),
                 ),
               ),
+            ),
+          ),
+          Material(
+            color: Colors.transparent,
+            child: onTap == null
+                ? Padding(padding: padding ?? EdgeInsets.zero, child: child)
+                : InkWell(
+                    onTap: onTap,
+                    borderRadius: borderRadius,
+                    child: Padding(
+                      padding: padding ?? EdgeInsets.zero,
+                      child: child,
+                    ),
+                  ),
+          ),
+        ],
       ),
     );
 
@@ -69,21 +96,13 @@ class TonalGlassSurface extends StatelessWidget {
             boxShadow ??
             [
               BoxShadow(
-                color: visual.shadow.withValues(alpha: visual.shadow.a * 0.6),
-                blurRadius: 28,
-                offset: const Offset(0, 12),
+                color: visual.shadow.withValues(alpha: visual.shadow.a * 0.45),
+                blurRadius: 22,
+                offset: const Offset(0, 10),
               ),
             ],
       ),
-      child: ClipRRect(
-        borderRadius: borderRadius,
-        child: blurSigma <= 0
-            ? content
-            : BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-                child: content,
-              ),
-      ),
+      child: ClipRRect(borderRadius: borderRadius, child: content),
     );
 
     if (onTap != null && pressScale != 1) {
@@ -103,6 +122,54 @@ class TonalGlassSurface extends StatelessWidget {
       child: Padding(padding: margin ?? EdgeInsets.zero, child: surface),
     );
   }
+
+  Gradient? _fill(DashboardVisualTheme visual, bool isDark) {
+    if (tone != GlassTone.hero) return null;
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color.alphaBlend(
+          Colors.white.withValues(alpha: isDark ? 0.06 : 0.28),
+          visual.heroStart,
+        ),
+        visual.heroEnd,
+      ],
+    );
+  }
+
+  Color _baseColor(DashboardVisualTheme visual, bool isDark) {
+    if (color != null) return color!;
+    if (tone == GlassTone.chrome) {
+      // Controls sit over scrolling content. A live blur would hide that
+      // content, but it also repaints on every frame, so the bar stays
+      // opaque and the glass read comes from the highlight and the edge.
+      return Color.alphaBlend(
+        Colors.white.withValues(alpha: isDark ? 0.06 : 0.2),
+        isDark ? visual.solidSurface : visual.navigationFill,
+      );
+    }
+    final frost = isDark
+        ? visual.solidSurface.withValues(alpha: 0.74)
+        : visual.glassFill;
+    return Color.alphaBlend(
+      Colors.white.withValues(alpha: isDark ? 0.06 : 0.18),
+      frost,
+    );
+  }
+
+  Color _border(DashboardVisualTheme visual, bool isDark) {
+    if (tone == GlassTone.hero) {
+      return Colors.white.withValues(alpha: isDark ? 0.20 : 0.72);
+    }
+    return visual.glassBorder;
+  }
+
+  double _sheen(bool isDark) => switch (tone) {
+    GlassTone.hero => isDark ? 0.16 : 0.42,
+    GlassTone.chrome => isDark ? 0.10 : 0.34,
+    GlassTone.panel => isDark ? 0.12 : 0.36,
+  };
 }
 
 class _PressScale extends StatefulWidget {
@@ -124,15 +191,15 @@ class _PressScaleState extends State<_PressScale> {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    if (MediaQuery.disableAnimationsOf(context)) return widget.child;
     return Listener(
       onPointerDown: (_) => _setPressed(true),
       onPointerUp: (_) => _setPressed(false),
       onPointerCancel: (_) => _setPressed(false),
       child: AnimatedScale(
-        scale: _pressed && !reduceMotion ? widget.scale : 1,
-        duration: Duration(milliseconds: _pressed ? 90 : 220),
-        curve: _pressed ? Curves.easeOut : Curves.easeOutBack,
+        scale: _pressed ? widget.scale : 1,
+        duration: Duration(milliseconds: _pressed ? 80 : 160),
+        curve: Curves.easeOutCubic,
         child: widget.child,
       ),
     );

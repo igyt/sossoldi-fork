@@ -88,13 +88,8 @@ class _NetWorthHero extends ConsumerWidget {
         : visual.textSecondary;
 
     return TonalGlassSurface(
+      tone: GlassTone.hero,
       radius: 30,
-      blurSigma: 24,
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [visual.heroStart, visual.heroEnd],
-      ),
       padding: const EdgeInsets.all(Sizes.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

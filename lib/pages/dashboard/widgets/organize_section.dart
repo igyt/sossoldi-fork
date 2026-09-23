@@ -27,8 +27,6 @@ class OrganizeSection extends ConsumerWidget {
 
     return TonalGlassSurface(
       radius: 28,
-      color: visual.solidSurface,
-      borderColor: visual.glassBorder.withValues(alpha: 0.7),
       padding: const EdgeInsets.all(Sizes.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,8 +295,6 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
 
     return TonalGlassSurface(
       radius: 22,
-      color: visual.raisedSurface,
-      borderColor: visual.glassBorder,
       padding: const EdgeInsets.all(Sizes.md),
       boxShadow: const [],
       child: AnimatedOpacity(

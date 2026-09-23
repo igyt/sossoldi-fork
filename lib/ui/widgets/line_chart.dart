@@ -129,7 +129,7 @@ class _LineChartSample2State extends State<LineChartWidget> {
               mainData(),
               duration: MediaQuery.disableAnimationsOf(context)
                   ? Duration.zero
-                  : const Duration(milliseconds: 260),
+                  : Duration(milliseconds: widget.dashboardStyle ? 160 : 220),
               curve: Curves.easeOutCubic,
             );
           },

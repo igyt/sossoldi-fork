@@ -17,8 +17,6 @@ class AccountSection extends ConsumerWidget {
     final visual = context.dashboardTheme;
     return TonalGlassSurface(
       radius: 28,
-      color: visual.solidSurface,
-      borderColor: visual.glassBorder.withValues(alpha: 0.7),
       padding: const EdgeInsets.all(Sizes.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

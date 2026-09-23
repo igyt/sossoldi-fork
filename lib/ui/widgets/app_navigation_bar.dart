@@ -55,9 +55,8 @@ class AppNavigationBar extends StatelessWidget {
                 child: SizedBox(
                   height: 64,
                   child: TonalGlassSurface(
+                    tone: GlassTone.chrome,
                     radius: 32,
-                    blurSigma: 24,
-                    color: visual.navigationFill,
                     borderColor: visual.glassBorder,
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                     boxShadow: [

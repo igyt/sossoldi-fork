@@ -65,13 +65,8 @@ class _HeroContent extends ConsumerWidget {
     );
 
     return TonalGlassSurface(
+      tone: GlassTone.hero,
       radius: 30,
-      blurSigma: 24,
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [visual.heroStart, visual.heroEnd],
-      ),
       padding: const EdgeInsets.all(Sizes.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,9 +389,8 @@ class _HeroLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     final visual = context.dashboardTheme;
     return TonalGlassSurface(
+      tone: GlassTone.hero,
       radius: 30,
-      blurSigma: 18,
-      gradient: LinearGradient(colors: [visual.heroStart, visual.heroEnd]),
       padding: const EdgeInsets.all(Sizes.xl),
       child: SizedBox(
         height: 360,
@@ -415,8 +409,8 @@ class _HeroError extends StatelessWidget {
   Widget build(BuildContext context) {
     final visual = context.dashboardTheme;
     return TonalGlassSurface(
+      tone: GlassTone.hero,
       radius: 30,
-      color: visual.solidSurface,
       padding: const EdgeInsets.all(Sizes.xl),
       child: SizedBox(
         height: 240,

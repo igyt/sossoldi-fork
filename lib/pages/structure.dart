@@ -67,19 +67,8 @@ class _StructureState extends ConsumerState<Structure> {
         body: AnimatedSwitcher(
           duration: reduceMotion
               ? Duration.zero
-              : const Duration(milliseconds: 320),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: Tween(
-                begin: const Offset(0, 0.012),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            ),
-          ),
+              : const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOut,
           child: KeyedSubtree(
             key: ValueKey(_selected),
             child: Center(
@@ -207,9 +196,8 @@ class _TopControls extends StatelessWidget {
       key: const ValueKey('search-capsule'),
       onTap: onSearch,
       semanticLabel: 'Search transactions',
+      tone: GlassTone.chrome,
       radius: 26,
-      blurSigma: 18,
-      color: visual.glassFill,
       padding: const EdgeInsets.symmetric(
         horizontal: Sizes.lg,
         vertical: Sizes.md,
@@ -255,9 +243,8 @@ class _DashboardAction extends StatelessWidget {
       child: TonalGlassSurface(
         onTap: onTap,
         semanticLabel: label,
+        tone: GlassTone.chrome,
         radius: 26,
-        blurSigma: 18,
-        color: visual.glassFill,
         boxShadow: const [],
         child: Tooltip(
           message: label,

@@ -9,7 +9,7 @@ class AnimatedAmount extends StatelessWidget {
     this.suffix = '',
     this.style,
     this.maxLines = 1,
-    this.duration = const Duration(milliseconds: 900),
+    this.duration = const Duration(milliseconds: 420),
     super.key,
   });
 
